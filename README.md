@@ -6,6 +6,8 @@ Turn a reference image into a prompt in Forge Neo’s **Image Tagger** tab. Use 
 
 ## Install the extension
 
+From v1.0.2, folder batches support WD, PixAI and LM Studio.
+
 From your Forge Neo root folder, run the following command and then restart Forge Neo. Open the **Image Tagger** tab. This extension targets Forge Neo with Gradio 4.
 
 ```shell
@@ -110,6 +112,8 @@ The taggers accept still images up to 64 MiB and 64 million pixels. While an ana
 Initial Windows checks on Forge Neo `6d5aa3bc` (Gradio 4.40.0) covered model download integrity, CPU and CUDA inference, switching detail levels without rerunning analysis, clipboard output and transfer to both Forge tabs. The original implementation draws on Anima Character Sheet Designer for tagger preprocessing and model verification. [Upstream project](https://github.com/ukr8b3g-cmyk/Anima-Character-Sheet-Designer) · [License](LICENSE) · [Artwork and model notices](NOTICE.md)
 
 ## 日本語
+
+v1.0.2 では、WD・PixAI・LM Studio の各モードでフォルダー一括処理を利用できます。
 
 Forge Neo の **Image Tagger** タブで、WD・PixAI によるタグ抽出と、LM Studio による画像解析・文章からのプロンプト補完を使えます。
 

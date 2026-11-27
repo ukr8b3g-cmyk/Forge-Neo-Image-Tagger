@@ -5,6 +5,7 @@ from threading import Lock
 from pathlib import Path
 from typing import Literal
 import sys
+import logging
 
 import gradio as gr
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
@@ -73,10 +74,29 @@ def on_tabs():
     return [(panel, "Image Tagger", "forge_hybrid_image_tagger")]
 
 
+def host_dependencies(app):
+    login = next((route.endpoint for route in app.routes if getattr(route, "path", "") == "/login_check"), None)
+    if login:
+        return [Depends(login)]
+    opts = shared.cmd_opts
+    if getattr(opts, "gradio_auth", None) or getattr(opts, "gradio_auth_path", None):
+        return None
+    if not opts.api_auth:
+        return []
+    for route in app.routes:
+        if getattr(route, "path", "") == "/sdapi/v1/options" and "GET" in route.methods:
+            return list(route.dependencies) or None
+    return None
+
+
 def register_api(_demo, app):
     global analysis_service, ocr_service, studio_service
     from modules.call_queue import queue_lock
 
+    dependencies = host_dependencies(app)
+    if dependencies is None:
+        logging.getLogger(__name__).warning("Image Tagger API disabled: Forge authentication dependency unavailable")
+        return
     service = AnalysisService(
         Path(models_path) / "image_tagger",
         lambda: getattr(shared.opts, SHARED_MODELS_OPTION, "").strip(),
@@ -86,8 +106,7 @@ def register_api(_demo, app):
     analysis_service = service
     ocr = SpeechOCR(Path(models_path) / "image_tagger" / "ocr", service.sessions, queue_lock)
     ocr_service = ocr
-    login = next((route.endpoint for route in app.routes if getattr(route, "path", "") == "/login_check"), None)
-    router = APIRouter(prefix=ROUTE, dependencies=[Depends(login)] if login else [])
+    router = APIRouter(prefix=ROUTE, dependencies=dependencies)
 
     def validate_site(request):
         if request.headers.get("sec-fetch-site") == "cross-site":
