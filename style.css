@@ -22,7 +22,8 @@
 }
 #forge_hybrid_tagger_mount { padding: 0; }
 #forge-hybrid-tagger:not(.lm-active) .lm-only,
-#forge-hybrid-tagger.lm-active :is(.model-strip, .advanced, .analysis-actions, #fhit-run-status, .ocr-strip, .batch-strip, #fhit-ocr-overlay),
+#forge-hybrid-tagger.lm-active :is(.model-strip, .advanced, .analysis-actions, #fhit-run-status, .ocr-strip, #fhit-ocr-overlay),
+#forge-hybrid-tagger.lm-text-input .batch-strip:not(.batch-running),
 #forge-hybrid-tagger.lm-active .result-panel > :not(.lm-only, .output),
 #forge-hybrid-tagger.lm-active .output > :not(.action-bar, .action-status),
 #forge-hybrid-tagger.lm-active #fhit-target-level,

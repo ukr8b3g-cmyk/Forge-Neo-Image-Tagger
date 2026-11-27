@@ -262,7 +262,8 @@ def register_api(_demo, app):
         return studio.models()
 
     @router.post("/lm/generate")
-    def lm_generate(request: Request, config: str = Form(...), image: UploadFile | None = File(None)):
+    def lm_generate(request: Request, config: str = Form(...), image: UploadFile | None = File(None),
+                    expected_url: str | None = Form(None)):
         validate_site(request)
         try:
             options = Generation.model_validate_json(config)
@@ -274,6 +275,8 @@ def register_api(_demo, app):
             if len(raw) > MAX_UPLOAD:
                 raise HTTPException(413, "image_size")
         url = studio.url()
+        if expected_url is not None and expected_url != url:
+            raise HTTPException(409, "lm_connection_changed")
         # Local captioning and Forge generation share GPU capacity, including JIT model loads.
         with queue_lock if is_local_server(url) else remote_lock:
             return studio.generate(options, raw, url=url)

@@ -159,7 +159,7 @@
   const numeric = ["temperature", "top_p", "max_tokens"];
   const json = (method, payload) => ({method, headers: {"Content-Type":"application/json"}, body:JSON.stringify(payload)});
 
-  window.forgeHybridTaggerLM = (panel, {byId, call, asset, locale, storageKey, notify, msg, splitPrompt, splitPromptLines, composeLM}) => {
+  window.forgeHybridTaggerLM = (panel, {byId, call, asset, locale, storageKey, notify, batchChanged, msg, splitPrompt, splitPromptLines, composeLM}) => {
     const el = key => byId("lm-" + key);
     const localized = pair => pair[locale() === "ja" ? 1 : 0];
     const tr = key => labels[key] ? localized(labels[key]) : msg(key);
@@ -251,6 +251,7 @@
     let systemPresets = [], systemReady = false, systemBusy = false, systemSeq = 0, systemError = "";
     el("system-name").value = systemName;
     let level = levels.includes(prefs.level) ? prefs.level : "full";
+    let batchBusy = false;
     const formatPrompt = el("format-prompt");
     formatPrompt.checked = prefs.formatted !== false;
     let textOutputLanguage = prefs.textOutputLanguage === "auto" ? "auto" : "english";
@@ -280,7 +281,7 @@
     }
     function memoryStatus() {
       const model = models.find(item => item.key === el("model").value);
-      el("unload").disabled = unloading || !model;
+      el("unload").disabled = batchBusy || unloading || !model;
       const key = releaseMessage || (model ? model.instances?.length ? "resident" : "notLoaded" : "");
       el("memory-status").textContent = key ? tr(key) : "";
     }
@@ -346,6 +347,7 @@
       const url = el("url");
       url.title = localized(url.readOnly ? stateHelp.fixedUrl : stateHelp.url);
       memoryStatus();
+      batchChanged?.();
     }
     function showPurposes() {
       formatOptions(el("purpose"), [["default:" + task(), tr("defaultPurpose")],
@@ -418,7 +420,7 @@
       }
       el("sections-note").textContent = note;
       el("sections-note").hidden = !note;
-      el("run").disabled = busy || unloading || (imageMode && !selected.length);
+      el("run").disabled = busy || batchBusy || unloading || (imageMode && !selected.length);
     }
     function controls() {
       const textMode = task() === "expand";
@@ -438,6 +440,7 @@
       el("run").title = localized(stateHelp[unloading ? "unloading" : action]);
       el("preset-delete").disabled = !selectedPreset();
       for (const key of tasks) el("task-" + key).setAttribute("aria-pressed", String(key === task()));
+      batchChanged?.();
     }
     function applyPurpose(id) {
       purpose = id;
@@ -580,8 +583,35 @@
       level = key; prefs.level = key;
       savePrefs(); showOutput();
     }
+    function generationConfig(mode, sections, input = "") {
+      const usesStandard = !systemName && customSystem === null;
+      const instruction = mode === "expand" ?
+        [usesStandard ? "" : expandTask, expandLanguage[textOutputLanguage], preserveImageText].filter(Boolean).join(" ") :
+        imageInstruction(mode, sections);
+      const config = {...options(), system:el("system").value, instruction,
+        model:el("model").value, memory:el("memory").value, text:mode === "expand" ? input : "", tiers:Boolean(composeLM)};
+      if (sections) config.sections = sections;
+      return config;
+    }
+    function generate(config, file, expectedUrl) {
+      const form = new FormData();
+      form.append("config", JSON.stringify(config));
+      if (file) form.append("image", file, file.name);
+      if (expectedUrl) form.append("expected_url", expectedUrl);
+      return call("lm/generate", {method:"POST",body:form});
+    }
+    function batchSettings(snapshot) {
+      const kind = task(), sections = selectedSections(kind);
+      const settings = {mode:"lm", kind, level, formatted:formatPrompt.checked, sections, model:el("model").value,
+        ready: loaded && Boolean(currentUrl && el("model").value && sections.length) && !busy && !unloading && kind !== "expand"};
+      if (snapshot && settings.ready) {
+        settings.config = generationConfig(kind, sections);
+        settings.url = currentUrl;
+      }
+      return settings;
+    }
     async function run() {
-      if (busy) return;
+      if (busy || batchBusy) return;
       const mode = task(), input = el("idea").value, file = asset()?.file;
       const sections = mode === "expand" ? null : selectedSections(mode);
       if (sections && !sections.length) return;
@@ -592,20 +622,9 @@
       const snapshot = revision;
       try {
         releaseMessage = ""; memoryStatus();
-        const settings = options();
-        const usesStandard = !systemName && customSystem === null;
-        const instruction = mode === "expand" ?
-          [usesStandard ? "" : expandTask, expandLanguage[textOutputLanguage], preserveImageText].filter(Boolean).join(" ") :
-          imageInstruction(mode, sections);
-        const config = {...settings, system:el("system").value, instruction,
-          model, memory:el("memory").value,
-          text:mode === "expand" ? input : "", tiers:Boolean(composeLM)};
-        if (sections) config.sections = sections;
+        const config = generationConfig(mode, sections, input);
         busy = true; controls(); notify(); setMessage("runningModel", model);
-        const form = new FormData();
-        form.append("config", JSON.stringify(config));
-        if (mode !== "expand") form.append("image",file,file.name);
-        const result = await call("lm/generate", {method:"POST",body:form});
+        const result = await generate(config, mode === "expand" ? null : file);
         if (revision === snapshot) {
           changeOutput(result, mode, sections);
           setMessage(resultText ? "legacyResult" : "done", model);
@@ -761,7 +780,7 @@
       }
       showModels(); controls();
     });
-    el("model").addEventListener("change", () => { revision++; prefs.model = el("model").value; releaseMessage = ""; updateSampling(); memoryStatus(); savePrefs(); });
+    el("model").addEventListener("change", () => { revision++; prefs.model = el("model").value; releaseMessage = ""; updateSampling(); memoryStatus(); savePrefs(); batchChanged?.(); });
     el("system").addEventListener("input", () => {
       revision++;
       if (!systemName) {
@@ -789,6 +808,26 @@
     });
     el("url").addEventListener("change", () => { revision++; void refreshModels(); });
     return {select,translate, busy:() => busy,
+      batchSettings, generate, translateError:tr,
+      setBatchBusy(value) {
+        if (value === batchBusy) return;
+        batchBusy = value;
+        renderSections(); memoryStatus();
+        if (!value && active) void refreshModels();
+      },
+      batchLabel(s) {
+        const topics = s.sections.length === sectionKeys.length ? tr("analysisSections") + " " + sectionKeys.length :
+          s.sections.map(key => localized(imageSections[key].label)).join(", ") || tr("selectSection");
+        return [s.model || tr("choose"), tr(s.kind), tr(s.level), topics, s.formatted && msg("batchFormatted")].filter(Boolean).join(" · ");
+      },
+      batchText(result, s) {
+        if (Array.isArray(result.items) && (result.items.length || !result.text)) {
+          return composeLM(result.items, s.level, s.formatted, s.kind).text;
+        }
+        const text = result.text || "";
+        if (s.formatted) return text;
+        return s.kind === "tags" ? splitPrompt(text).join(", ") : text.replace(/\s*[\r\n]+\s*/g, " ");
+      },
       assetChanged() {
         if (task() !== "expand") { revision++; changeOutput({text:""},task()); setMessage(""); }
         else if (analyzedSections) changeOutput({text:""},task());

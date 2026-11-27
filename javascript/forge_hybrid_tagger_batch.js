@@ -5,7 +5,7 @@
   const readAccess = {mode: "read"};
   const writeAccess = {mode: "readwrite"};
   const terminal = new Set(["done", "failed", "cancelled"]);
-  const imageErrors = new Set(["bad_image", "image_size", "animated_image", "transparent_image", "analysis_failed"]);
+  const imageErrors = new Set(["bad_image", "image_size", "animated_image", "transparent_image", "analysis_failed", "lm_no_output", "lm_levels"]);
   const issueLimit = 50;
   const batchHelp = {
     en: {
@@ -164,35 +164,60 @@
       issues: issues.querySelector(":scope > summary"),
     };
     const supported = typeof window.showDirectoryPicker === "function";
+    const section = summaries.section.parentElement, originalParent = section.parentElement;
+    const lmSettings = panel.querySelector("#fhit-lm-settings");
+    const errorMessage = options.errorMessage || msg;
+    const lmResults = new Map();
+    const openByMode = {tagger:section.open, lm:false};
+    let cacheScope = "", imageCount = null;
     let folder = null, destination = null, choosing = false, active = null, result = null;
     let issueResult = null, issueCount = 0, issueLanguage = "";
     let helpLanguage;
 
     function render() {
       const language = locale?.() === "ja" ? "ja" : "en";
+      const current = settings();
+      const isLM = current.mode === "lm";
+      const shown = active?.settings || current;
+      if (isLM && lmSettings && section.parentElement === originalParent) {
+        openByMode.tagger = section.open;
+        lmSettings.before(section);
+        section.open = Boolean(active) || openByMode.lm;
+      } else if (!isLM && section.parentElement !== originalParent) {
+        openByMode.lm = section.open;
+        originalParent.append(section);
+        section.open = Boolean(active) || openByMode.tagger;
+      }
+      section.classList.toggle("batch-running", Boolean(active));
+      format.closest(".batch-controls").hidden = isLM;
+      prefix.closest("label").hidden = exclude.closest("label").hidden = isLM;
+      summaries.rules.firstElementChild.textContent = msg(isLM ? "batchSavingOptions" : "batchRules");
       if (helpLanguage !== language) {
         for (const [name, hint] of Object.entries(batchHelp[language])) (summaries[name] || byId(name)).title = hint;
         helpLanguage = language;
       }
-      const selection = folder?.name || "";
+      if (isLM) summaries.rules.title = msg("batchSavingOptions");
+      else summaries.rules.title = batchHelp[language].rules;
+      const selection = folder ? [folder.name, isLM && imageCount !== null && msg("batchImageCount").replace("{n}", imageCount)].filter(Boolean).join(" · ") : "";
       folderName.textContent = folderName.title = selection;
       folderName.hidden = !selection;
       saveFolderName.textContent = saveFolderName.title = destination?.name || msg("batchSameFolder");
       choose.disabled = chooseDestination.disabled = !supported || choosing || Boolean(active);
       resetDestination.hidden = !destination;
       resetDestination.disabled = choosing || Boolean(active);
-      start.disabled = !folder || choosing || Boolean(active);
-      preview.disabled = review.disabled = start.disabled;
+      review.disabled = !folder || choosing || Boolean(active);
+      start.disabled = preview.disabled = review.disabled || current.ready === false;
       format.disabled = prefix.disabled = exclude.disabled = replace.disabled = !supported || Boolean(active);
       start.hidden = Boolean(active);
       stop.hidden = !active;
       stop.disabled = Boolean(active?.stopped);
-      byId("settings").textContent = settingsLabel(active?.settings || settings());
+      byId("settings").textContent = settingsLabel(shown);
+      options.batchActivity?.(active);
 
       const selectedRules = active?.settings.rules || rules();
       byId("rule-summary").textContent = [
-        selectedRules.first.size && msg("batchAdded").replace("{n}", selectedRules.first.size),
-        selectedRules.excluded.size && msg("batchExcluded").replace("{n}", selectedRules.excluded.size),
+        !isLM && selectedRules.first.size && msg("batchAdded").replace("{n}", selectedRules.first.size),
+        !isLM && selectedRules.excluded.size && msg("batchExcluded").replace("{n}", selectedRules.excluded.size),
         replace.checked && msg("batchReplacing")
       ].filter(Boolean).join(" · ");
       byId("hint").textContent = msg(replace.checked ? "batchReplaceHint" : "batchHint");
@@ -202,7 +227,7 @@
       if (!supported) {
         parts.push(msg("batchUnsupported"));
       } else if (state) {
-        parts.push(msg(state.phase));
+        parts.push(errorMessage(state.phase));
         if (active?.file) parts.push(active.index + "/" + active.progressTotal + " · " + active.file);
         if (state.total) {
           parts.push([[state.purpose === "preview" ? "batchPreviewed" : "batchSaved", "saved"],
@@ -224,7 +249,7 @@
       issueCount = count;
       issueLanguage = panel.lang;
       issueList.replaceChildren();
-      for (const item of state?.issues || []) addIssueLine(item.file + " — " + msg(item.key));
+      for (const item of state?.issues || []) addIssueLine(item.file + " — " + errorMessage(item.key));
       if (count > issueLimit) addIssueLine(msg("batchMoreIssues").replace("{n}", count - issueLimit));
     }
 
@@ -247,6 +272,21 @@
     }
 
     async function analyzeFile(run, file) {
+      if (run.settings.mode === "lm") {
+        const s = run.settings;
+        if (file.size > 64 * 1024 * 1024) throw new Error("image_size");
+        const hash = await captionHash(file);
+        if (run.stopped) return "";
+        const key = Array.from(hash, byte => byte.toString(16).padStart(2, "0")).join("");
+        let response = lmResults.get(key);
+        if (response) run.reused += 1;
+        else {
+          response = await options.lmGenerate(s.config, file, s.url);
+          lmResults.set(key, response);
+          if (response.releaseError) run.releaseError = response.releaseError;
+        }
+        return options.lmText(response, s);
+      }
       const started = await startAnalysis(file, run.settings);
       run.jobId = started.id;
       if (!run.started) {
@@ -280,7 +320,16 @@
       try {
         const selected = await window.showDirectoryPicker(saveFolder ? writeAccess : readAccess);
         if (saveFolder) destination = selected;
-        else folder = selected;
+        else {
+          if (folder !== selected && (!folder || !await selected.isSameEntry(folder))) lmResults.clear();
+          folder = selected;
+          imageCount = null;
+          if (settings().mode === "lm") {
+            let count = 0;
+            for await (const handle of selected.values()) if (handle.kind === "file" && imageExtension.test(handle.name)) count++;
+            imageCount = count;
+          }
+        }
         result = null;
       } catch (error) {
         if (error.name !== "AbortError") {
@@ -292,9 +341,9 @@
       }
     }
 
-    function begin(purpose) {
+    function begin(purpose, selected = settings()) {
       const run = {
-        purpose, settings: {...settings(), rules: rules()}, replace: replace.checked,
+        purpose, settings: {...selected, rules: rules()}, replace: replace.checked,
         phase: "batchScanning", total: 0, progressTotal: 0, saved: 0, skipped: 0, failed: 0, reused: 0,
         issueCount: 0, issues: [], stopped: false
       };
@@ -326,7 +375,7 @@
 
     function failedRun(run, error) {
       run.phase = run.stopped ? "batchStopped" :
-        msg(error.message) !== error.message ? error.message : "batchFolderError";
+        errorMessage(error.message) !== error.message ? error.message : "batchFolderError";
       run.error = !run.stopped;
     }
 
@@ -352,7 +401,22 @@
     async function runFolder(tryOnly) {
       if (!folder || active) return;
       const target = destination || folder;
-      const run = begin(tryOnly ? "preview" : "save");
+      let selected;
+      try {
+        selected = settings(true);
+      } catch (error) {
+        result = {phase:error.message, error:true};
+        render();
+        return;
+      }
+      if (selected.ready === false) return;
+      if (selected.mode === "lm") {
+        const {memory, ...generation} = selected.config;
+        const scope = JSON.stringify([selected.url, generation]);
+        if (scope !== cacheScope) lmResults.clear();
+        cacheScope = scope;
+      }
+      const run = begin(tryOnly ? "preview" : "save", selected);
       const samples = [];
       try {
         if (await target.requestPermission(tryOnly ? readAccess : writeAccess) !== "granted") {
@@ -360,6 +424,7 @@
         }
         const {files, existing, nameCounts} = await scan(target, run);
         run.total = files.length;
+        imageCount = files.length;
         const targets = [];
         for (const entry of files) {
           if (run.stopped) break;
@@ -398,6 +463,7 @@
           run.stopped = true;
         }
         for (const [index, entry] of work.entries()) {
+          if (run.releaseError) break;
           if (run.stopped) break;
           const {handle, textName, caption, before} = entry;
           run.index = index + 1;
@@ -409,15 +475,15 @@
             const file = await handle.getFile();
             if (run.stopped) break;
             stage = "batchAnalyzeError";
-            if (!run.models) run.models = await readModels(run.settings);
+            if (run.settings.mode !== "lm" && !run.models) run.models = await readModels(run.settings);
             if (run.stopped) break;
-            run.phase = "queued";
+            run.phase = run.settings.mode === "lm" ? "analyzing" : "queued";
             render();
             const text = await analyzeFile(run, file);
             if (run.stopped) break;
-            if (!text && run.settings.format === "description") {
+            if (!text && (run.settings.mode === "lm" || run.settings.format === "description")) {
               run.skipped += 1;
-              addIssue(run, handle.name, "batchNoDescription");
+              addIssue(run, handle.name, run.settings.mode === "lm" ? "batchNoPrompt" : "batchNoDescription");
               continue;
             }
             if (tryOnly) {
@@ -438,13 +504,14 @@
           } catch (error) {
             if (run.stopped) break;
             run.failed += 1;
-            const reason = stage === "batchAnalyzeError" && error.message !== msg(error.message) ?
+            const reason = stage === "batchAnalyzeError" && error.message !== errorMessage(error.message) ?
               error.message : stage;
             addIssue(run, handle.name, reason);
             if (error.name === "NotAllowedError") throw new Error("batchPermission");
             if (stage === "batchAnalyzeError" && !imageErrors.has(reason)) throw new Error(reason);
           }
         }
+        if (run.releaseError) throw new Error(run.releaseError);
         if (run.stopped) run.phase = "batchStopped";
         else if (!run.total) run.phase = "batchEmpty";
         else if (tryOnly) run.phase = work.length ? "batchPreviewDone" : "batchPreviewEmpty";

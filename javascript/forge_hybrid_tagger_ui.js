@@ -87,6 +87,10 @@
       "batchPreviewEmpty": "No files to preview with these save settings.",
       "batchPreviewed": "{n} previewed",
       "batchReused": "{n} analyses reused",
+      "batchSavingOptions": "Saving options",
+      "batchImageCount": "{n} images",
+      "lm_connection_changed": "The LM Studio server changed. Start the batch again.",
+      "batchNoPrompt": "No prompt at the selected level for this image.",
       "batchReview": "View results",
       "batchClose": "Close",
       "batchFilter": "Filter by filename or exact tag",
@@ -369,6 +373,10 @@
       "batchPreviewEmpty": "この保存設定で試せる画像がありません。",
       "batchPreviewed": "プレビュー {n} 件",
       "batchReused": "解析結果を再利用 {n} 件",
+      "batchSavingOptions": "保存設定",
+      "batchImageCount": "{n} 枚",
+      "lm_connection_changed": "LM Studioの接続先が変わりました。バッチを再開してください。",
+      "batchNoPrompt": "この画像では選択した詳しさの出力が空でした。",
       "batchReview": "結果を見る",
       "batchClose": "閉じる",
       "batchFilter": "ファイル名・タグで絞り込む",
@@ -730,17 +738,27 @@
       }
     }
 
+    let lm;
     const renderBatch = window.forgeHybridTaggerBatch(panel, {
       msg, locale: () => state.language,
       compileRules: C.compileRules,
       splitPrompt: C.splitPrompt,
       tagKey: C.tagKey,
-      settings: () => {
+      settings: snapshot => {
+        if (state.lmActive && lm) return lm.batchSettings(snapshot);
         const {mode, device, auto, level, batchFormat, formatted, thresholds} = state;
         return {mode, device, auto, level, format: batchFormat, formatted, thresholds: {p: {...thresholds.p}, w: {...thresholds.w}}};
       },
-      settingsLabel: ({mode, level, formatted}) =>
-        [modeName(mode), msg(level), ...(formatted ? [msg("batchFormatted")] : [])].join(" · "),
+      settingsLabel: s => s.mode === "lm" ? lm.batchLabel(s) :
+        [modeName(s.mode), msg(s.level), ...(s.formatted ? [msg("batchFormatted")] : [])].join(" · "),
+      lmGenerate: (config, file, url) => lm.generate(config, file, url),
+      lmText: (response, s) => lm.batchText(response, s),
+      errorMessage: key => lm?.translateError(key) || msg(key),
+      batchActivity(run) {
+        state.lmBatch = run?.settings.mode === "lm" && run.purpose !== "review" ? run : null;
+        lm?.setBatchBusy(Boolean(state.lmBatch));
+        renderProgress();
+      },
       async readModels({mode}) {
         const id = C.modes[mode];
         if (!state.models[id]) await refreshModels();
@@ -761,10 +779,11 @@
       }
     });
 
-    const lm = byId("lm-run") && window.forgeHybridTaggerLM?.(panel, {
+    lm = byId("lm-run") && window.forgeHybridTaggerLM?.(panel, {
       byId, call, asset: () => state.asset, locale: () => state.language, msg,
       storageKey: storageKey + ":lm", splitPrompt: C.splitPrompt, splitPromptLines: C.splitPromptLines, tagKey: C.tagKey, composeLM: C.composeLM,
-      notify() { renderProgress(); renderOutput(); }
+      batchChanged() { if (lm) renderBatch(); },
+      notify() { renderProgress(); renderOutput(); if (lm) renderBatch(); }
     });
 
     const ocr = window.forgeHybridTaggerOCR?.(panel, {
@@ -1023,6 +1042,7 @@
       const job = state.job && state.jobStatus;
       let activity = job ? {state: job.state, model: state.models[job.model]} : state.ocrProgress;
       if (state.lmActive && lm?.busy()) activity = {state: "lm"};
+      if (state.lmBatch) activity = {state: "lm"};
       if (!activity) {
         const transfers = Object.values(state.models).filter(model => activeModels.has(model.state));
         const transfer = transfers.find(model => model.state === "downloading") || transfers[0];
@@ -1030,6 +1050,15 @@
       }
       line.hidden = !activity;
       if (!activity) return;
+      if (state.lmBatch?.index > 1 && state.lmBatch.progressTotal) {
+        const run = state.lmBatch;
+        const percent = Math.round(100 * ((run.index || 1) - 1) / run.progressTotal);
+        line.dataset.indeterminate = "false";
+        line.style.setProperty("--progress-width", percent + "%");
+        line.setAttribute("aria-valuenow", String(percent));
+        line.setAttribute("aria-valuetext", (run.index || 1) + "/" + run.progressTotal + " · " + (run.file || ""));
+        return;
+      }
       const {state: phase, model} = activity;
       const hasBytes = (phase === "downloading" || phase === "ocr_preparing") &&
         model?.state === "downloading" && model.totalBytes > 0 && Number.isFinite(model.bytes);
