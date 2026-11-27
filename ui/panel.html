@@ -1,0 +1,309 @@
+<div id="forge-hybrid-tagger">
+  <div id="fhit-progress" class="analysis-progress" role="progressbar" data-aria="activityProgress" aria-label="Processing progress" hidden>
+    <span></span>
+  </div>
+  <div class="toolbar">
+    <div class="controls">
+      <strong id="fhit-mode-label" data-i18n="mode">Mode</strong>
+      <div class="segments" role="group" aria-labelledby="fhit-mode-label">
+        <button type="button" data-action="mode" data-value="wd" aria-pressed="true">WD</button>
+        <button type="button" data-action="mode" data-value="pixai" aria-pressed="false">PixAI</button>
+        <button type="button" data-action="mode" data-value="lm" aria-pressed="false">LM Studio</button>
+      </div>
+    </div>
+    <div class="language">
+      <div class="segments" role="group" data-aria="language" aria-label="Display language">
+        <button type="button" data-action="language" data-value="en" lang="en" aria-pressed="true">EN</button>
+        <button type="button" data-action="language" data-value="ja" lang="ja" aria-pressed="false">日本語</button>
+      </div>
+    </div>
+  </div>
+  <details class="model-strip">
+    <summary><span data-i18n="models">Models</span><span id="fhit-model-badges" class="model-badges"></span></summary>
+    <div class="model-details">
+      <div id="fhit-model-entries"></div>
+      <div id="fhit-model-file-status" class="muted model-file-status" role="status"></div>
+      <label class="checkbox"><input id="fhit-auto-download" type="checkbox" checked> <span data-i18n="autoDownload">Auto-download</span></label>
+      <button type="button" class="quiet small" data-action="check-models" data-i18n="checkModels">Check files</button>
+      <div class="session-controls">
+        <label class="control-pair"><span data-i18n="memory">Model memory</span>
+          <select id="fhit-memory-policy" disabled>
+            <option value="immediate" data-i18n="unloadAfter">Unload after analysis</option>
+            <option value="idle" data-i18n="unloadIdle">Unload after idle</option>
+            <option value="keep" data-i18n="keepLoaded">Keep loaded</option>
+          </select>
+        </label>
+        <label id="fhit-idle-control" class="control-pair" hidden>
+          <input id="fhit-idle-seconds" type="number" min="1" max="3600" step="1" value="60" data-aria="idleSeconds">
+          <span data-i18n="seconds">sec</span>
+        </label>
+        <button type="button" id="fhit-unload" class="quiet small" data-action="unload" data-i18n="unloadNow" disabled>Unload now</button>
+        <span id="fhit-session-status" class="muted" role="status"></span>
+      </div>
+    </div>
+  </details>
+  <div class="workspace" id="fhit-workspace">
+    <section class="panel source-panel" id="fhit-source-panel" aria-labelledby="fhit-source-heading">
+      <div class="lm-only lm-fields">
+        <label><span data-lm="purpose"></span><select id="fhit-lm-purpose"></select></label>
+      </div>
+      <div class="section-heading"><h2 id="fhit-source-heading" data-i18n="image">Reference image</h2></div>
+      <div id="fhit-image-well" class="image-well" tabindex="0" role="group" data-aria="dropImage">
+        <img id="fhit-reference" alt="" hidden>
+        <div id="fhit-ocr-overlay" class="ocr-overlay" aria-hidden="true" hidden></div>
+        <div class="image-placeholder" id="fhit-image-placeholder">
+          <span data-i18n="dropImage">Drop or paste an image</span>
+          <button type="button" class="secondary small" data-action="choose" data-i18n="chooseImage">Choose image</button>
+        </div>
+        <div id="fhit-image-resize" class="resize-grip image-corner" role="separator" aria-orientation="horizontal" aria-controls="fhit-image-well" tabindex="0" data-aria="resizeImage" data-title="resizeImage"></div>
+      </div>
+      <input id="fhit-choose-file" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+      <div class="asset-bar" id="fhit-asset-bar" hidden>
+        <div class="asset-names"><strong id="fhit-filename"></strong><span id="fhit-image-size" class="muted"></span></div>
+        <div class="asset-actions">
+          <button type="button" class="quiet small" data-action="choose" data-i18n="replace">Replace</button>
+          <button type="button" class="quiet icon-button" data-action="clear-image" data-aria="clearImage" data-title="clearImage">×</button>
+        </div>
+      </div>
+      <div class="lm-only lm-fields">
+        <label id="fhit-lm-text-field" hidden><span data-lm="idea"></span><textarea id="fhit-lm-idea" rows="3"></textarea></label>
+        <button type="button" class="primary" id="fhit-lm-run"></button>
+        <p id="fhit-lm-message" role="status" class="muted"></p>
+        <details id="fhit-lm-settings"><summary data-lm="settings"></summary>
+          <div class="lm-fields">
+            <label><span data-lm="model"></span><select id="fhit-lm-model"></select></label>
+            <button type="button" class="quiet small" id="fhit-lm-refresh" data-lm="refresh"></button>
+            <label><span data-lm="modelMemory"></span><select id="fhit-lm-memory">
+              <option value="forge" data-lm="beforeForge"></option><option value="immediate" data-lm="afterUse"></option>
+              <option value="server" data-lm="serverMemory"></option>
+            </select></label>
+            <div><button type="button" class="quiet small" id="fhit-lm-unload" data-lm="unloadSelected"></button>
+              <span id="fhit-lm-memory-status" class="muted" role="status"></span></div>
+            <label><span data-lm="server"></span><input id="fhit-lm-url" type="url" aria-label="LM Studio URL" value="http://127.0.0.1:1234"></label>
+            <label><span data-lm="system"></span><textarea id="fhit-lm-system" rows="2"></textarea></label>
+            <label><span data-lm="task"></span><select id="fhit-lm-task"><option value="tags" data-lm="tags"></option><option value="caption" data-lm="caption"></option><option value="expand" data-lm="expand"></option></select></label>
+            <details><summary data-lm="parameters"></summary><div class="lm-numbers">
+              <label>Temperature<input id="fhit-lm-temperature" type="number" min="0" step="any"></label>
+              <label>Top P<input id="fhit-lm-top_p" type="number" min="0" max="1" step="any"></label>
+              <label>Max tokens<input id="fhit-lm-max_tokens" type="number" min="1" step="1"></label>
+            </div></details>
+            <label><span data-lm="presetName"></span><input id="fhit-lm-preset-name" type="text"></label>
+            <div><button type="button" id="fhit-lm-preset-save" data-lm="savePreset"></button>
+              <button type="button" class="quiet small" id="fhit-lm-preset-delete" data-lm="deletePreset"></button></div>
+          </div>
+        </details>
+      </div>
+      <div class="analysis-actions">
+        <button type="button" id="fhit-analyze" class="primary analyze" data-action="analyze" disabled>Analyze</button>
+        <button type="button" id="fhit-analyze-character" class="secondary character-analyze" data-action="analyze-character"
+          data-i18n="analyzeCharacter" data-title="analyzeCharacterHint" aria-pressed="false" disabled>Character Only</button>
+      </div>
+      <p id="fhit-run-status" class="run-status" role="status"></p>
+      <details class="ocr-strip" id="fhit-ocr">
+        <summary><span data-i18n="ocrSpeech">Text &amp; Dialogue</span><span id="fhit-ocr-count" class="muted"></span></summary>
+        <div class="ocr-body">
+          <div class="ocr-actions">
+            <button type="button" id="fhit-ocr-auto" class="secondary small" data-i18n="ocrAuto" disabled>Read automatically</button>
+            <button type="button" id="fhit-ocr-crop" class="quiet small" data-i18n="ocrCrop" aria-pressed="false" disabled>Read selected area</button>
+            <button type="button" id="fhit-ocr-manual" class="quiet small" data-i18n="ocrManual" disabled>Enter text</button>
+            <button type="button" id="fhit-ocr-speakers" class="quiet small" data-i18n="ocrInferSpeakers" disabled>Infer speakers</button>
+            <button type="button" id="fhit-ocr-stop" class="quiet small" data-i18n="cancel" hidden>Cancel</button>
+          </div>
+          <p id="fhit-ocr-status" class="muted" role="status"></p>
+          <p id="fhit-ocr-models" class="muted" hidden></p>
+          <div id="fhit-ocr-controls" class="ocr-actions" hidden>
+            <button type="button" id="fhit-ocr-adopt-all" class="quiet small" data-i18n="ocrAdoptAll">Use all</button>
+          </div>
+          <ol id="fhit-ocr-list" class="ocr-list" hidden></ol>
+          <div class="ocr-actions ocr-export" id="fhit-ocr-export" hidden>
+            <span id="fhit-ocr-export-count" class="muted"></span>
+            <button type="button" id="fhit-ocr-layout" class="secondary small" disabled>MOSS JSON</button>
+          </div>
+          <dialog id="fhit-ocr-layout-dialog" class="batch-dialog ocr-layout-dialog" aria-labelledby="fhit-ocr-layout-title">
+            <div class="dialog-heading">
+              <strong id="fhit-ocr-layout-title">MOSS JSON</strong>
+              <button type="button" id="fhit-ocr-layout-close" class="quiet icon-button" data-aria="ocrLayoutClose" data-title="ocrLayoutClose">×</button>
+            </div>
+            <div class="ocr-actions ocr-layout-size" role="group" data-aria="ocrCanvas">
+              <label><span data-i18n="ocrWidth">Width</span><input id="fhit-ocr-layout-width" type="number" min="16" step="16"></label>
+              <label><span data-i18n="ocrHeight">Height</span><input id="fhit-ocr-layout-height" type="number" min="16" step="16"></label>
+            </div>
+            <p id="fhit-ocr-layout-note" class="muted" role="status"></p>
+            <textarea id="fhit-ocr-layout-preview" data-aria="ocrLayoutPreview" readonly rows="3" spellcheck="false"></textarea>
+            <div class="ocr-actions ocr-layout-actions">
+              <span id="fhit-ocr-layout-feedback" class="muted" role="status"></span>
+              <button type="button" id="fhit-ocr-layout-copy" class="secondary small" data-i18n="copy">Copy</button>
+              <button type="button" id="fhit-ocr-layout-save" class="secondary small" data-i18n="ocrLayoutSave">Save JSON</button>
+            </div>
+          </dialog>
+        </div>
+      </details>
+      <details class="batch-strip">
+        <summary data-i18n="batch">Folder batch</summary>
+        <div class="batch-body">
+          <div class="batch-controls">
+            <button type="button" id="fhit-batch-choose" class="quiet small" data-i18n="batchChoose" disabled>Choose image folder</button>
+            <span id="fhit-batch-folder" class="batch-path" hidden></span>
+          </div>
+          <div class="batch-controls">
+            <button type="button" id="fhit-batch-destination" class="quiet small" data-i18n="batchDestination" disabled>Choose save folder</button>
+            <span id="fhit-batch-save-folder" class="batch-path">Same as images</span>
+            <button type="button" id="fhit-batch-reset" class="quiet small" data-i18n="batchReset" hidden>Use image folder</button>
+          </div>
+          <div class="batch-controls">
+            <label class="control-pair"><span data-i18n="format">Output format</span>
+              <select id="fhit-batch-format">
+                <option value="tags" data-i18n="tags">Tags</option>
+                <option value="mixed" data-i18n="mixed">Tags + Description</option>
+                <option value="description" data-i18n="description">Description</option>
+              </select>
+            </label>
+          </div>
+          <details class="batch-rules">
+            <summary><span data-i18n="batchRules">Common tags and saving</span><span id="fhit-batch-rule-summary" class="muted"></span></summary>
+            <label><span data-i18n="batchPrefix">Add at the start</span>
+              <input id="fhit-batch-prefix" type="text" autocomplete="off" data-placeholder="batchPrefixHint">
+            </label>
+            <label><span data-i18n="batchExclude">Exclude tags</span>
+              <input id="fhit-batch-exclude" type="text" autocomplete="off" data-placeholder="batchExcludeHint">
+            </label>
+            <label class="checkbox"><input id="fhit-batch-replace" type="checkbox">
+              <span data-i18n="batchReplace">Replace existing .txt files</span>
+            </label>
+          </details>
+          <div class="batch-controls">
+            <button type="button" id="fhit-batch-start" class="primary small" data-i18n="batchStart" disabled>Save .txt files</button>
+            <button type="button" id="fhit-batch-stop" class="secondary small" data-i18n="batchStop" hidden>Stop</button>
+            <button type="button" id="fhit-batch-preview" class="secondary small" data-i18n="batchPreview" disabled>Try 3</button>
+            <button type="button" id="fhit-batch-review" class="quiet small" data-i18n="batchReview" disabled>View results</button>
+            <span id="fhit-batch-settings" class="muted"></span>
+          </div>
+          <p id="fhit-batch-hint" class="muted"></p>
+          <p id="fhit-batch-status" class="muted" role="status" hidden></p>
+          <details id="fhit-batch-issues" hidden>
+            <summary data-i18n="batchIssues">View issues</summary>
+            <ul id="fhit-batch-issue-list"></ul>
+          </details>
+        </div>
+      </details>
+    </section>
+    <div id="fhit-column-resize" class="resize-grip vertical" role="separator" aria-orientation="vertical" aria-controls="fhit-source-panel" tabindex="0" data-aria="resizePanels" data-title="resizePanels"></div>
+    <section class="panel result-panel" aria-labelledby="fhit-tag-heading">
+      <div class="lm-only lm-fields">
+        <label><strong data-lm="result"></strong><textarea id="fhit-lm-result" rows="7" spellcheck="false"></textarea></label>
+      </div>
+      <div class="section-heading">
+        <div><h2 id="fhit-tag-heading" data-i18n="adopted">Adopted tags</h2><span id="fhit-adopted-count" class="count-pill">0</span></div>
+        <button type="button" id="fhit-edit-tags" class="quiet small" data-action="edit-tags" aria-expanded="false" aria-controls="fhit-tag-text-panel" data-i18n="editTags">Edit as text</button>
+      </div>
+      <div id="fhit-tag-list" class="tag-list"></div>
+      <form id="fhit-add-tag-form" class="tag-tools">
+        <input id="fhit-new-tag" type="text" data-placeholder="tagPlaceholder" data-aria="tagPlaceholder" autocomplete="off">
+        <button type="submit" id="fhit-add-tag" class="small" data-i18n="add">Add</button>
+      </form>
+      <div id="fhit-tag-text-panel" class="tag-text-panel" hidden>
+        <textarea id="fhit-tag-text" rows="3" data-aria="editTags"></textarea>
+        <div class="tag-tools">
+          <button type="button" class="small" data-action="apply-tags" data-i18n="apply">Apply</button>
+          <button type="button" class="quiet small" data-action="cancel-tags" data-i18n="cancel">Cancel</button>
+        </div>
+      </div>
+      <details id="fhit-candidate-panel" class="candidates">
+        <summary><span data-i18n="candidates">Candidates</span><span id="fhit-candidate-count" class="count-pill">0</span></summary>
+        <div class="candidate-tools">
+          <label for="fhit-search-tags" class="search-label" data-i18n="search">Search tags</label>
+          <input id="fhit-search-tags" type="text" data-placeholder="search">
+          <label for="fhit-category-filter" class="field-label" data-i18n="category">Category</label>
+          <select id="fhit-category-filter">
+            <option value="all" data-i18n="all">All</option><option value="general" data-i18n="general">General</option>
+            <option value="character" data-i18n="character">Character</option><option value="style" data-i18n="style">Style</option>
+            <option value="copyright" data-i18n="copyright">Series</option><option value="meta" data-i18n="meta">Meta</option>
+            <option value="rating" data-i18n="rating">Rating</option>
+          </select>
+        </div>
+        <div id="fhit-candidate-list" class="candidate-list"></div>
+      </details>
+      <div class="output">
+        <div class="format-row">
+          <div class="control-pair">
+            <strong class="field-label" id="fhit-format-label" data-i18n="format">Output format</strong>
+            <div id="fhit-format" class="segments" role="group" aria-labelledby="fhit-format-label">
+              <button type="button" data-action="format" data-value="tags" data-i18n="tags" aria-pressed="true">Tags</button>
+              <button type="button" data-action="format" data-value="mixed" data-i18n="mixed" aria-pressed="false">Tags + Description</button>
+              <button type="button" data-action="format" data-value="description" data-i18n="description" aria-pressed="false">Description</button>
+            </div>
+          </div>
+          <button type="button" id="fhit-compare" data-action="compare" class="secondary compare-toggle" aria-pressed="false" aria-expanded="false" aria-controls="fhit-comparison" data-i18n="compare">Compare prompts</button>
+        </div>
+        <div class="detail-row">
+          <div class="control-pair">
+            <strong id="fhit-level-label" class="field-label" data-i18n="level">Detail level</strong>
+            <div class="segments" role="group" aria-labelledby="fhit-level-label">
+              <button type="button" data-action="level" data-value="standard" data-i18n="standard" aria-pressed="false">Standard</button>
+              <button type="button" data-action="level" data-value="detailed" data-i18n="detailed" aria-pressed="true">Detailed</button>
+              <button type="button" data-action="level" data-value="full" data-i18n="full" data-title="fullHint">Full</button>
+            </div>
+          </div>
+          <label class="checkbox prompt-format" data-title="formatPromptHint"><input id="fhit-format-prompt" type="checkbox">
+            <span data-i18n="formatPrompt">Group prompt by subject</span>
+          </label>
+        </div>
+        <div id="fhit-single-preview" class="preview-box">
+          <div class="preview-caption"><span data-i18n="preview">Preview</span><span id="fhit-preview-count"></span></div>
+          <div id="fhit-preview-text" class="preview-text" tabindex="0"></div>
+        </div>
+        <div id="fhit-comparison" class="comparison-grid" aria-labelledby="fhit-level-label" hidden></div>
+        <div id="fhit-output-resize" class="resize-grip horizontal" role="separator" aria-orientation="horizontal" aria-controls="fhit-single-preview fhit-comparison" tabindex="0" data-aria="resizeOutput" data-title="resizeOutput"></div>
+        <details id="fhit-description-panel" class="description-editor" hidden>
+          <summary id="fhit-description-title"></summary>
+          <textarea id="fhit-description-text" rows="2" data-aria="description"></textarea>
+          <div class="caption-buttons">
+            <span class="muted" id="fhit-description-note"></span>
+            <button type="button" class="quiet small" data-action="reset-description" data-i18n="rebuild">Rebuild from tags</button>
+          </div>
+        </details>
+        <div class="action-bar">
+          <span id="fhit-target-level" class="target-level"></span>
+          <div class="action-group">
+            <button type="button" id="fhit-copy" class="secondary" data-action="copy" data-i18n="copy" disabled>Copy</button>
+            <button type="button" id="fhit-send-txt" data-action="send" data-value="txt2img" data-i18n="sendTxt" disabled>Send to txt2img</button>
+            <button type="button" id="fhit-send-img" data-action="send" data-value="img2img" data-i18n="sendImg" disabled>Send to img2img</button>
+          </div>
+        </div>
+        <p id="fhit-action-status" class="action-status" role="status"></p>
+      </div>
+    </section>
+  </div>
+  <details class="advanced">
+    <summary data-i18n="advanced">Advanced</summary>
+    <div class="advanced-body">
+      <label class="control-pair"><span data-i18n="device">Analysis device</span>
+        <select id="fhit-device"><option value="auto" data-i18n="auto">Auto</option><option value="cpu">CPU</option><option value="cuda">CUDA</option></select>
+      </label>
+      <label class="threshold"><span>PixAI</span><span data-i18n="general">General</span><input id="fhit-p-general" type="number" min="0" max="1" step="0.01"></label>
+      <label class="threshold"><span>PixAI</span><span data-i18n="character">Character</span><input id="fhit-p-character" type="number" min="0" max="1" step="0.01"></label>
+      <label class="threshold"><span>WD</span><span data-i18n="general">General</span><input id="fhit-w-general" type="number" min="0" max="1" step="0.01"></label>
+      <label class="threshold"><span>WD</span><span data-i18n="character">Character</span><input id="fhit-w-character" type="number" min="0" max="1" step="0.01"></label>
+      <button type="button" class="quiet small" data-action="reset-thresholds" data-i18n="resetThresholds">Reset thresholds</button>
+    </div>
+  </details>
+  <dialog id="fhit-batch-dialog" class="batch-dialog" aria-labelledby="fhit-batch-dialog-title">
+    <div class="dialog-heading">
+      <h2 id="fhit-batch-dialog-title"></h2>
+      <button type="button" id="fhit-batch-dialog-close" class="quiet small" data-i18n="batchClose">Close</button>
+    </div>
+    <div class="batch-review-controls">
+      <input id="fhit-batch-dialog-filter" type="text" autocomplete="off" data-placeholder="batchFilter" data-aria="batchFilter">
+      <select id="fhit-batch-dialog-files" data-aria="batchSelectImage"></select>
+      <span id="fhit-batch-dialog-count" class="muted"></span>
+    </div>
+    <div id="fhit-batch-dialog-content" class="batch-review-content" hidden>
+      <div class="batch-review-image"><img id="fhit-batch-dialog-image" alt="" hidden></div>
+      <textarea id="fhit-batch-dialog-text" rows="8" spellcheck="false" data-aria="batchCaption"></textarea>
+    </div>
+    <div class="batch-review-actions">
+      <span id="fhit-batch-dialog-status" class="muted" role="status"></span>
+      <button type="button" id="fhit-batch-dialog-save" class="primary small" data-i18n="batchSaveEdit" hidden>Save changes</button>
+    </div>
+  </dialog>
+</div>

@@ -1,0 +1,66 @@
+{
+  "models": [
+    {
+      "id": "manga-ocr",
+      "label": "Manga OCR",
+      "repo_id": "kha-white/manga-ocr-base",
+      "revision": "aa6573bd10b0d446cbf622e29c3e084914df9741",
+      "download_url": "https://huggingface.co/kha-white/manga-ocr-base/resolve/aa6573bd10b0d446cbf622e29c3e084914df9741/pytorch_model.bin",
+      "files": [
+        {
+          "filename": "pytorch_model.bin",
+          "size": 444135475,
+          "sha256": "c63e0bb5b3ff798c5991de18a8e0956c7ee6d1563aca6729029815eda6f5c2eb"
+        },
+        {
+          "filename": "config.json",
+          "size": 77546,
+          "sha256": "8c0e395de8fa699daaac21aee33a4ba9bd1309cfbff03147813d2a025f39f349"
+        },
+        {
+          "filename": "preprocessor_config.json",
+          "size": 228,
+          "sha256": "af4eb4d79cf61b47010fc0bc9352ee967579c417423b4917188d809b7e048948"
+        },
+        {
+          "filename": "vocab.txt",
+          "size": 24072,
+          "sha256": "344fbb6b8bf18c57839e924e2c9365434697e0227fac00b88bb4899b78aa594d"
+        }
+      ]
+    },
+    {
+      "id": "bubble-detector",
+      "label": "Speech bubble detector",
+      "repo_id": "ogkalu/comic-text-and-bubble-detector",
+      "revision": "16e8a622f91fabc6b5b65c96d32d1183f8843546",
+      "download_url": "https://huggingface.co/ogkalu/comic-text-and-bubble-detector/resolve/16e8a622f91fabc6b5b65c96d32d1183f8843546/detector-v4-s_int8.onnx",
+      "files": [
+        {
+          "filename": "detector-v4-s_int8.onnx",
+          "size": 11120765,
+          "sha256": "5fe9e4f576e49d4e7e8b0e029d6d3cdc252abd4694113e1cae120e62c931ea79"
+        }
+      ]
+    },
+    {
+      "id": "magi-v2",
+      "label": "MAGI v2",
+      "repo_id": "ragavsachdeva/magiv2",
+      "revision": "fbc890fec52977142e8ee00bfe26e9458b65517c",
+      "download_url": "https://huggingface.co/ragavsachdeva/magiv2/resolve/fbc890fec52977142e8ee00bfe26e9458b65517c/pytorch_model.bin",
+      "files": [
+        {
+          "filename": "config.json",
+          "size": 13383,
+          "sha256": "d55b3b0b6c16d61c97c4afd79b0d0e9b2371a4a3442f7dbef2ff838cb089e19f"
+        },
+        {
+          "filename": "pytorch_model.bin",
+          "size": 2063693064,
+          "sha256": "56392403204d3a4cca38694a3a260a6929d741869d802d6b14de35b4eab4c4b8"
+        }
+      ]
+    }
+  ]
+}
