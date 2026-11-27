@@ -30,15 +30,15 @@ Open **Models** to see which files are ready and where they are stored. **Auto-d
 
 Choose **Tags**, **Tags + Description** or **Description**. **Compare prompts** shows **Standard**, **Detailed** and **Full** from one analysis. Full includes lower-scoring general tags. Click a column heading to select the version to copy or send. **Group prompt by subject** puts related details on separate lines in the preview, clipboard and saved text.
 
-![Folder batch input, save folder and output format](docs/images/folder-batch.png)
+Select **Folder batch** above the workspace, choose the folder containing the images, then click **Analyze folder & save .txt**. For example, `sample.png` produces `sample.txt` in UTF-8. The default is to save alongside each image and skip existing text files. Choose separate save folders to keep both tagger tags and LM Studio captions.
 
-Click **Choose image folder**, optionally choose a different save folder, then click **Save .txt files**. For example, `sample.png` produces `sample.txt` in UTF-8. The default is to save alongside each image and skip existing text files. Choose separate save folders to keep both tagger tags and LM Studio captions.
+![Folder batch workspace showing the image folder, save destination, and two saved text files in LM Studio mode](docs/images/folder-batch.png)
 
 ### Batch options
 
-- For WD and PixAI, choose the output format and optionally enter common prefix tags or exclusions. **Try 3** previews up to three eligible images before writing.
+- For WD and PixAI, choose the output format and optionally enter common prefix tags or exclusions. **Preview up to 3 images** shows sample output without writing files. **View preview** reopens the last preview.
 - The batch processes images directly inside the selected folder. To replace existing text, select the update option and review the count. The results show name conflicts, skipped files and failures. Stopping a batch preserves files already written.
-- **View results** opens each image beside its saved text. Filter by filename or tag, edit the text and save your changes. WD and PixAI batch and trial runs reuse detection scores from Forge’s `cache/image_tagger/analysis.sqlite3` when the image, model revision and device configuration match.
+- Newly saved results open in a dialog in the center of the screen. **View saved .txt** reopens files from the selected save folder. Filter by filename or tag, edit the text and save your changes. WD and PixAI batch and trial runs reuse detection scores from Forge’s `cache/image_tagger/analysis.sqlite3` when the image, model revision and device configuration match.
 - Use a browser with folder write access, such as Edge or Chrome, on localhost or HTTPS. [Browser folder access](https://developer.chrome.com/docs/capabilities/web-apis/file-system-access#opening_a_directory_and_enumerating_its_contents)
 
 ## Set up LM Studio
@@ -64,7 +64,9 @@ Start with **Image Caption** and **Detailed**, the first-use settings. **Image T
 
 Open **Analysis topics** below the analysis button. All six topics start enabled. Select **Appearance** alone to focus on shapes, colors, garments or markings. After analysis, toggling a topic already analyzed updates the output immediately. Run analysis again to include a topic omitted from the original request.
 
-For multiple images, open **Folder batch** between **Analysis topics** and **Model settings** in **Image Caption** or **Image Tags**. Set the model, topics, prompt, generation settings, detail level and grouping as for a single image. **Try 3** previews up to three outputs. **Save .txt files** reuses those results for unchanged images and generation settings in the same open folder and tab. Changing detail level or grouping reformats the saved-in-memory results. The single-image preview stays available. **Stop** prevents further saves after the current request returns. Start again with the default skip policy to continue past completed files.
+For multiple images, select **Folder batch** above the workspace in **Image Caption** or **Image Tags**. Set the model, topics, prompt, generation settings, detail level and grouping as for a single image. **Preview up to 3 images** previews up to three outputs. **Analyze folder & save .txt** reuses those results for unchanged images and generation settings in the same open folder and tab. Changing detail level or grouping reformats the saved-in-memory results. The single-image preview stays available. **Stop** prevents further saves after the current request returns. Start again with the default skip policy to continue past completed files.
+
+Use **Single image** to access **Expand Text**.
 
 ![LM Studio model picker, memory policy and server address](docs/images/lm-model.png)
 
@@ -147,9 +149,7 @@ Forge の Python 環境に Pillow、NumPy と、互換性のある ONNX Runtime 
 
 **Compare prompts** を押すと、1回の解析結果を **Standard / Detailed / Full** の3列で比較できます。見出しをクリックしてコピー・送信する列を選びます。**Output format** ではタグ・タグ＋説明文・説明文を切り替え、**Group prompt by subject** では項目ごとに改行できます。
 
-![Folder batch で画像フォルダー、保存先、出力形式を選ぶ画面](docs/images/folder-batch.png)
-
-複数枚をまとめて処理するには、参照画像の下の **Folder batch → Choose image folder** でフォルダーを選びます。**Save .txt files** を押すと画像と同じ場所に同名のテキストを保存します。別の場所にまとめる場合は **Choose save folder** を指定します。既存の同名テキストはスキップされます。
+複数枚をまとめて処理するには、画面上部で **フォルダー一括** に切り替えて **画像フォルダーを選ぶ** を押します。**一括解析して .txt を保存** を押すと、画像と同じ場所に同名のテキストを保存します。出力先を変える場合は **別の保存先を選ぶ** を押します。既存の同名テキストは初期設定でスキップします。
 
 ### LM Studio で説明文を作る
 
@@ -246,15 +246,19 @@ LM Studio へは共通プロンプトと選択した用途の処理指示を渡�
 
 ## フォルダー一括
 
-**WD・PixAI** では参照画像の下、**LM Studio** の **画像から説明文／画像からタグ** では **解析項目** と **モデル設定** の間にあります。WDのタグとLM Studioの説明文を両方残すには、それぞれ別の保存先を指定します。
+![LM Studioで画像フォルダーと保存先を確認し、テキスト2件を保存した画面](docs/images/folder-batch.png)
 
-LM Studioではモデル、解析項目、システムプロンプト、生成設定、詳しさ、整形に単画像と同じ設定を使います。**3枚で試す** の後、同じタブ・フォルダーで同じ生成設定のまま **.txt を保存** すると、試した画像の結果を再利用します。詳しさや整形だけを変えても再生成は不要です。単画像のプレビューと手編集はそのまま残ります。停止すると実行中の1枚の応答を待ち、それ以降の書き込みを止めます。保存済みをスキップする設定で再開すれば、残りの画像から続けられます。
+**WD・PixAI** と **LM Studio** の **画像から説明文／画像からタグ** では、画面上部で **1枚ずつ** と **フォルダー一括** を切り替えられます。WDのタグとLM Studioの説明文を両方残すには、それぞれ別の保存先を指定します。
 
-1. **参照画像** の下にある **フォルダー一括（Folder batch）** を開き、**画像フォルダーを選ぶ** を押します。保存先は初期状態では画像と同じ場所です。別の場所に出力するには **保存先を選ぶ** を押します。
-2. WD・PixAIでは一括保存の **出力形式** を選びます。既定は **タグ** で、**タグ＋説明文** と **説明文** も選べます。**共通タグと保存設定** を開くと、先頭に追加するタグと除外するタグをカンマ区切りで入力できます。先頭タグは **タグ** と **タグ＋説明文** で使われます。共通タグ欄の入力はページを開いている間に有効です。LM Studioでは画面上部で選んだ **画像から説明文／画像からタグ** が出力形式になります。
-3. **3枚で試す** を押すと、保存対象から最大3枚の画像とテキストを確認できます。試し出力はプレビューに表示されます。内容を確かめたら **.txt を保存** を押します。必要に応じてブラウザーで保存先への書き込みを許可します。
+**短文を補完** を使うときは **1枚ずつ** に切り替えます。
+
+LM Studioではモデル、解析項目、システムプロンプト、生成設定、詳しさ、整形に単画像と同じ設定を使います。**最大3枚をプレビュー** の後、同じタブ・フォルダーで同じ生成設定のまま **一括解析して .txt を保存** すると、試した画像の結果を再利用します。詳しさや整形だけを変えても再生成は不要です。単画像のプレビューと手編集はそのまま残ります。停止すると実行中の1枚の応答を待ち、それ以降の書き込みを止めます。保存済みをスキップする設定で再開すれば、残りの画像から続けられます。
+
+1. 画面上部で **フォルダー一括** に切り替え、**画像フォルダーを選ぶ** を押します。選んだフォルダー名と画像の枚数が表示されます。初期状態では画像と同じ場所に保存します。出力先を変える場合は **別の保存先を選ぶ** を押します。
+2. WD・PixAIでは一括保存の **出力形式** を選びます。既定は **タグ** で、**タグ＋説明文** と **説明文** も選べます。先頭に追加するタグと除外するタグを、表示されている入力欄にカンマ区切りで入力できます。先頭タグは **タグ** と **タグ＋説明文** で使われます。共通タグ欄の入力はページを開いている間に有効です。LM Studioでは画面上部で選んだ **画像から説明文／画像からタグ** が出力形式になります。
+3. **最大3枚をプレビュー** を押すと、保存対象から最大3枚の画像とテキストを確認できます。試し出力は画面中央のプレビューに表示されます。閉じた後は **プレビューを見る** で開き直せます。書き出すには **一括解析して .txt を保存** を押します。必要に応じてブラウザーで保存先への書き込みを許可します。
 4. 保存・スキップ・失敗の件数を確認します。失敗やファイル名の重複は **内訳を表示** で確認できます。更新の確認後に他のアプリなどで変更されたテキストも、上書きせず内訳に表示します。途中で **停止** した場合も、書き出したファイルは残ります。
-5. **結果を見る** で、画像と対応する保存済みのテキストを並べて編集できます。ファイル名の一部やタグの完全一致で絞り込み、現在のファイルを **変更を保存** で更新できます。
+5. 新しく保存した結果は画面中央に表示されます。**保存済み .txt を見る** で、保存先のテキストと対応する画像を開き直せます。ファイル名の一部やタグの完全一致で絞り込み、現在のファイルを **変更を保存** で更新できます。
 
 選んだフォルダー直下の PNG、JPEG、WebP を1枚ずつ解析し、`sample.png` なら `sample.txt` を選択した保存先に UTF-8 で作成します。WD・PixAIでは開始時のモデル、詳しさ、デバイス、閾値、自動ダウンロードと整形の設定が適用されます。保存先に同名の `.txt` があれば標準ではスキップします。内容を作り直す場合は、別の保存先を選ぶか、**既存の .txt を更新** を選んで対象件数を確認します。画像同士の保存名が重複した場合や、**説明文** のみの出力で説明文を作れなかった場合は、スキップの内訳で確認できます。
 

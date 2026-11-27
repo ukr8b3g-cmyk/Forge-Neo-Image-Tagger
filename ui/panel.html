@@ -42,7 +42,66 @@
       </div>
     </div>
   </details>
+  <div class="batch-view-selector segments" role="group" data-aria="batchView">
+    <button type="button" id="fhit-batch-single-view" data-i18n="singleImageView" data-title="singleImageViewHint" aria-pressed="true" aria-controls="fhit-source-panel">Single image</button>
+    <button type="button" id="fhit-batch-folder-view" data-i18n="batch" aria-pressed="false" aria-controls="fhit-batch-workspace">Folder batch</button>
+  </div>
   <div class="workspace" id="fhit-workspace">
+    <section class="panel batch-workspace" id="fhit-batch-workspace" aria-label="Folder batch" data-aria="batch" hidden>
+      <div class="batch-folders">
+        <div class="batch-folder">
+          <strong data-i18n="batchInput">Image folder</strong>
+          <span id="fhit-batch-folder" class="batch-path" data-i18n="batchNoFolder">No folder selected</span>
+          <div class="batch-controls">
+            <button type="button" id="fhit-batch-choose" class="primary small" data-i18n="batchChoose" aria-describedby="fhit-batch-folder" disabled>Choose image folder</button>
+          </div>
+        </div>
+        <div class="batch-folder">
+          <strong data-i18n="batchOutput">Save to</strong>
+          <span id="fhit-batch-save-folder" class="batch-path" data-i18n="batchSameFolder">Same folder as images</span>
+          <div class="batch-controls">
+            <button type="button" id="fhit-batch-destination" class="quiet small" data-i18n="batchDestination" aria-describedby="fhit-batch-save-folder" disabled>Choose another folder</button>
+            <button type="button" id="fhit-batch-reset" class="quiet small" data-i18n="batchReset" hidden>Use image folder</button>
+          </div>
+        </div>
+      </div>
+      <div class="batch-rules">
+        <div class="batch-tag-options">
+          <label class="control-pair"><span data-i18n="format">Output format</span>
+            <select id="fhit-batch-format">
+              <option value="tags" data-i18n="tags">Tags</option>
+              <option value="mixed" data-i18n="mixed">Tags + Description</option>
+              <option value="description" data-i18n="description">Description</option>
+            </select>
+          </label>
+          <label><span data-i18n="batchPrefix">Add at the start</span>
+            <input id="fhit-batch-prefix" type="text" autocomplete="off" data-placeholder="batchPrefixHint">
+          </label>
+          <label><span data-i18n="batchExclude">Exclude tags</span>
+            <input id="fhit-batch-exclude" type="text" autocomplete="off" data-placeholder="batchExcludeHint">
+          </label>
+        </div>
+        <label class="checkbox"><input id="fhit-batch-replace" type="checkbox" aria-describedby="fhit-batch-hint">
+          <span data-i18n="batchReplace">Replace existing .txt files</span>
+        </label>
+        <p id="fhit-batch-hint" class="muted"></p>
+      </div>
+      <div class="batch-controls batch-actions">
+        <button type="button" id="fhit-batch-start" class="primary small" data-i18n="batchStart" aria-describedby="fhit-batch-status" disabled>Analyze folder &amp; save .txt</button>
+        <button type="button" id="fhit-batch-stop" class="secondary small" data-i18n="batchStop" hidden>Stop</button>
+      </div>
+      <p id="fhit-batch-status" role="status" hidden></p>
+      <details id="fhit-batch-issues" hidden>
+        <summary data-i18n="batchIssues">View issues</summary>
+        <ul id="fhit-batch-issue-list"></ul>
+      </details>
+      <div class="batch-controls batch-preview-actions">
+        <button type="button" id="fhit-batch-review" class="quiet small" data-i18n="batchReview" disabled>View saved .txt</button>
+        <button type="button" id="fhit-batch-preview" class="quiet small" data-i18n="batchPreview" disabled>Preview up to 3 images</button>
+        <button type="button" id="fhit-batch-reopen-preview" class="quiet small" data-i18n="batchReopenPreview" hidden>View preview</button>
+      </div>
+      <p id="fhit-batch-settings" class="muted"></p>
+    </section>
     <section class="panel source-panel" id="fhit-source-panel" aria-labelledby="fhit-source-heading">
       <div class="lm-only lm-fields">
         <label><span data-lm="purpose"></span><select id="fhit-lm-purpose"></select></label>
@@ -136,54 +195,6 @@
               <button type="button" id="fhit-ocr-layout-save" class="secondary small" data-i18n="ocrLayoutSave">Save JSON</button>
             </div>
           </dialog>
-        </div>
-      </details>
-      <details class="batch-strip">
-        <summary data-i18n="batch">Folder batch</summary>
-        <div class="batch-body">
-          <div class="batch-controls">
-            <button type="button" id="fhit-batch-choose" class="quiet small" data-i18n="batchChoose" disabled>Choose image folder</button>
-            <span id="fhit-batch-folder" class="batch-path" hidden></span>
-          </div>
-          <div class="batch-controls">
-            <button type="button" id="fhit-batch-destination" class="quiet small" data-i18n="batchDestination" disabled>Choose save folder</button>
-            <span id="fhit-batch-save-folder" class="batch-path">Same as images</span>
-            <button type="button" id="fhit-batch-reset" class="quiet small" data-i18n="batchReset" hidden>Use image folder</button>
-          </div>
-          <div class="batch-controls">
-            <label class="control-pair"><span data-i18n="format">Output format</span>
-              <select id="fhit-batch-format">
-                <option value="tags" data-i18n="tags">Tags</option>
-                <option value="mixed" data-i18n="mixed">Tags + Description</option>
-                <option value="description" data-i18n="description">Description</option>
-              </select>
-            </label>
-          </div>
-          <details class="batch-rules">
-            <summary><span data-i18n="batchRules">Common tags and saving</span><span id="fhit-batch-rule-summary" class="muted"></span></summary>
-            <label><span data-i18n="batchPrefix">Add at the start</span>
-              <input id="fhit-batch-prefix" type="text" autocomplete="off" data-placeholder="batchPrefixHint">
-            </label>
-            <label><span data-i18n="batchExclude">Exclude tags</span>
-              <input id="fhit-batch-exclude" type="text" autocomplete="off" data-placeholder="batchExcludeHint">
-            </label>
-            <label class="checkbox"><input id="fhit-batch-replace" type="checkbox">
-              <span data-i18n="batchReplace">Replace existing .txt files</span>
-            </label>
-          </details>
-          <div class="batch-controls">
-            <button type="button" id="fhit-batch-start" class="primary small" data-i18n="batchStart" disabled>Save .txt files</button>
-            <button type="button" id="fhit-batch-stop" class="secondary small" data-i18n="batchStop" hidden>Stop</button>
-            <button type="button" id="fhit-batch-preview" class="secondary small" data-i18n="batchPreview" disabled>Try 3</button>
-            <button type="button" id="fhit-batch-review" class="quiet small" data-i18n="batchReview" disabled>View results</button>
-            <span id="fhit-batch-settings" class="muted"></span>
-          </div>
-          <p id="fhit-batch-hint" class="muted"></p>
-          <p id="fhit-batch-status" class="muted" role="status" hidden></p>
-          <details id="fhit-batch-issues" hidden>
-            <summary data-i18n="batchIssues">View issues</summary>
-            <ul id="fhit-batch-issue-list"></ul>
-          </details>
         </div>
       </details>
     </section>
@@ -289,7 +300,10 @@
   </details>
   <dialog id="fhit-batch-dialog" class="batch-dialog" aria-labelledby="fhit-batch-dialog-title">
     <div class="dialog-heading">
-      <h2 id="fhit-batch-dialog-title"></h2>
+      <div>
+        <h2 id="fhit-batch-dialog-title"></h2>
+        <p id="fhit-batch-dialog-folder" class="batch-path" hidden></p>
+      </div>
       <button type="button" id="fhit-batch-dialog-close" class="quiet small" data-i18n="batchClose">Close</button>
     </div>
     <div class="batch-review-controls">
@@ -303,6 +317,7 @@
     </div>
     <div class="batch-review-actions">
       <span id="fhit-batch-dialog-status" class="muted" role="status"></span>
+      <button type="button" id="fhit-batch-dialog-save-batch" class="primary small" data-i18n="batchStart" hidden>Analyze folder &amp; save .txt</button>
       <button type="button" id="fhit-batch-dialog-save" class="primary small" data-i18n="batchSaveEdit" hidden>Save changes</button>
     </div>
   </dialog>

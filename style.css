@@ -23,7 +23,6 @@
 #forge_hybrid_tagger_mount { padding: 0; }
 #forge-hybrid-tagger:not(.lm-active) .lm-only,
 #forge-hybrid-tagger.lm-active :is(.model-strip, .advanced, .analysis-actions, #fhit-run-status, .ocr-strip, #fhit-ocr-overlay),
-#forge-hybrid-tagger.lm-text-input .batch-strip:not(.batch-running),
 #forge-hybrid-tagger.lm-active .result-panel > :not(.lm-only, .output),
 #forge-hybrid-tagger.lm-active .output > :not(.action-bar, .action-status),
 #forge-hybrid-tagger.lm-active #fhit-target-level,
@@ -181,7 +180,6 @@
 #forge-hybrid-tagger .language .segments button { min-height: 25px; padding: 2px 8px; font-size: 12px; }
 #forge-hybrid-tagger .model-strip,
 #forge-hybrid-tagger .ocr-strip,
-#forge-hybrid-tagger .batch-strip,
 #forge-hybrid-tagger .advanced {
   margin-top: 9px;
   border: 1px solid var(--soft-border);
@@ -226,7 +224,6 @@
 #forge-hybrid-tagger .status-pill .ready { color: var(--green); }
 #forge-hybrid-tagger .model-details,
 #forge-hybrid-tagger .ocr-body,
-#forge-hybrid-tagger .batch-body,
 #forge-hybrid-tagger .advanced-body {
   padding: 6px 12px 10px;
   border-top: 1px solid var(--soft-border);
@@ -292,12 +289,46 @@
 #forge-hybrid-tagger .batch-path { min-width: 0; max-width: 100%; overflow-wrap: anywhere; color: var(--muted); font-size: 12px; }
 #forge-hybrid-tagger .batch-controls label { font-size: 12px; }
 #forge-hybrid-tagger .batch-controls select { min-height: 29px; padding: 3px 7px; }
-#forge-hybrid-tagger .batch-rules { margin: 5px 0; border-block: 1px solid var(--soft-border); }
-#forge-hybrid-tagger .batch-rules summary { min-height: 27px; padding: 3px 0; font-size: 12px; }
-#forge-hybrid-tagger .batch-rules label { font-size: 12px; }
-#forge-hybrid-tagger .batch-rules label:not(.checkbox) { display: grid; gap: 2px; margin: 4px 0; }
-#forge-hybrid-tagger .batch-rules .checkbox { margin: 2px 0 6px; }
-#forge-hybrid-tagger .batch-body p { margin: 5px 0 0; overflow-wrap: anywhere; }
+#forge-hybrid-tagger .batch-view-selector { margin-top: 10px; }
+#forge-hybrid-tagger .batch-actions { gap: 6px; margin-top: 12px; }
+#forge-hybrid-tagger .batch-preview-actions { margin-top: 7px; }
+#forge-hybrid-tagger .batch-folders,
+#forge-hybrid-tagger .batch-tag-options { display: grid; gap: 8px; }
+#forge-hybrid-tagger .batch-folders { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+#forge-hybrid-tagger .batch-folder {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px;
+  background: var(--well);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+#forge-hybrid-tagger .batch-folder .batch-path { color: var(--text); }
+#forge-hybrid-tagger .batch-rules { margin-top: 12px; border-top: 1px solid var(--soft-border); padding-top: 8px; }
+#forge-hybrid-tagger .batch-tag-options { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+#forge-hybrid-tagger .batch-tag-options > label { display: grid; gap: 4px; min-width: 0; font-size: 12px; }
+#forge-hybrid-tagger .batch-tag-options :is(input, select) { width: 100%; min-width: 0; }
+#forge-hybrid-tagger .batch-rules > .checkbox { display: flex; gap: 7px; margin: 8px 0 0; }
+#forge-hybrid-tagger .batch-workspace p { margin: 5px 0 0; overflow-wrap: anywhere; }
+#forge-hybrid-tagger #fhit-batch-status { font-size: 12px; }
+#forge-hybrid-tagger.folder-active .workspace { grid-template-columns: minmax(0, 1fr); }
+#forge-hybrid-tagger.folder-active.lm-active .workspace {
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 32%);
+  gap: 12px;
+}
+#forge-hybrid-tagger.folder-active:not(.lm-active) .source-panel,
+#forge-hybrid-tagger.folder-active :is(.result-panel, #fhit-column-resize, #fhit-image-well, #fhit-asset-bar,
+  .analysis-actions, #fhit-run-status, #fhit-ocr, #fhit-lm-run, #fhit-lm-message, #fhit-lm-task-expand),
+#forge-hybrid-tagger.folder-active .section-heading:has(> #fhit-source-heading),
+#forge-hybrid-tagger.lm-active .batch-tag-options { display: none !important; }
+@media (max-width: 790px) {
+  #forge-hybrid-tagger.folder-active.lm-active .workspace { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 560px) {
+  #forge-hybrid-tagger :is(.batch-folders, .batch-tag-options) { grid-template-columns: minmax(0, 1fr); }
+}
 #forge-hybrid-tagger #fhit-batch-issues summary { min-height: 26px; padding: 3px 0; font-size: 12px; }
 #forge-hybrid-tagger #fhit-batch-issue-list {
   margin: 0;
@@ -321,6 +352,14 @@
   border-radius: 10px;
 }
 #forge-hybrid-tagger .batch-dialog::backdrop { background: rgb(0 0 0 / 54%); }
+#forge-hybrid-tagger #fhit-batch-dialog[open] {
+  position: fixed;
+  inset: 50% auto auto 50%;
+  height: fit-content;
+  max-height: calc(100dvh - 24px);
+  margin: 0;
+  transform: translate(-50%, -50%);
+}
 #forge-hybrid-tagger .dialog-heading,
 #forge-hybrid-tagger .batch-review-controls,
 #forge-hybrid-tagger .batch-review-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }

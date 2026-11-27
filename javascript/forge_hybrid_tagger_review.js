@@ -1,10 +1,11 @@
 /* Inspect trial results or edit sidecars in the browser-granted save folder. */
 (() => {
   "use strict";
-  window.forgeHybridTaggerReview = function mountReview(panel, {msg, splitPrompt, tagKey, writeText}) {
+  window.forgeHybridTaggerReview = function mountReview(panel, {msg, splitPrompt, tagKey, writeText, savePreview}) {
     const byId = name => panel.querySelector("#fhit-batch-dialog" + (name ? "-" + name : ""));
     const dialog = byId(), close = byId("close"), filter = byId("filter"), files = byId("files");
     const editor = byId("text"), image = byId("image"), save = byId("save");
+    const saveBatch = byId("save-batch");
     const drafts = new Map();
     let entries = [], target = null, imageURL = null, current = null, writing = false;
     let selectionVersion = 0, filterVersion = 0;
@@ -169,14 +170,21 @@
       saveState();
     });
     save.addEventListener("click", () => void saveEdit());
+    saveBatch.addEventListener("click", () => {
+      dialog.close();
+      void savePreview();
+    });
 
     return function openReview(rows, saveFolder = null) {
       entries = rows.map((row, index) => ({...row, index}));
       target = saveFolder;
-      byId("title").textContent = msg(target ? "batchReview" : "batchPreviewTitle");
+      byId("title").textContent = msg(target ? "batchSavedTitle" : "batchPreviewTitle");
+      byId("folder").textContent = target?.name || "";
+      byId("folder").hidden = !target;
       filter.value = "";
       filter.hidden = !target || !entries.length;
       save.hidden = !target;
+      saveBatch.hidden = Boolean(target);
       editor.readOnly = !target;
       dialog.showModal();
       updateChoices(entries);

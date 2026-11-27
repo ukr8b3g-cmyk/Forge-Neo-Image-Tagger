@@ -9,45 +9,45 @@
   const issueLimit = 50;
   const batchHelp = {
     en: {
-      section: "Analyze a folder of images and save a text file for each result.",
       choose: "Choose the folder that contains the images to analyze.",
       destination: "Choose a separate folder for saving text files.",
       reset: "Save the text files in the image folder.",
       format: "Choose the content of each text file.",
-      rules: "Set shared tags and the overwrite preference for this batch.",
       prefix: "Add these comma-separated tags at the beginning of each tag output.",
       exclude: "Enter comma-separated tags to exclude from each output.",
       replace: "Replace existing text files after confirming the overwrite count.",
       start: "Analyze the eligible images and write their text files.",
       stop: "Stop processing the folder.",
-      preview: "Preview the output for up to three eligible images before saving.",
-      review: "Review and edit saved text beside its matching image.",
+      preview: "Analyze up to three images for an on-screen preview only.",
+      "reopen-preview": "Open the last preview.",
+      review: "Open and edit the .txt files in the selected save folder.",
       issues: "See the reasons for skipped images and processing failures.",
       "dialog-close": "Close the results dialog.",
       "dialog-filter": "Filter by part of a filename or by an exact tag.",
       "dialog-files": "Choose an image and its matching text to display.",
       "dialog-text": "Review this image's text. In saved results, you can also edit it.",
+      "dialog-save-batch": "Analyze the folder and save the results as .txt files.",
       "dialog-save": "Save the edited text for the selected image.",
     },
     ja: {
-      section: "フォルダー内の画像を解析し、結果を画像ごとのテキストファイルに保存します。",
       choose: "解析したい画像が入っているフォルダーを選びます。",
       destination: "テキストファイルを保存する別のフォルダーを選びます。",
       reset: "画像と同じフォルダーにテキストファイルを保存します。",
       format: "テキストファイルに保存する出力内容を選びます。",
-      rules: "この一括処理で共通のタグや上書き方法を設定します。",
       prefix: "カンマで区切って入力したタグを、各画像のタグの先頭に加えます。",
       exclude: "各画像の出力から除外するタグをカンマで区切って入力します。",
       replace: "上書き件数を確認してから、既存のテキストファイルを置き換えます。",
       start: "対象の画像を解析し、結果をテキストファイルに書き出します。",
       stop: "フォルダーの一括処理を停止します。",
-      preview: "保存前に、対象画像のうち最大3枚の出力を確認します。",
-      review: "画像を見ながら、保存したテキストを確認・編集します。",
+      preview: "最大3枚を解析し、画面上で出力を確認します。",
+      "reopen-preview": "直前のプレビューを開きます。",
+      review: "保存先フォルダーの .txt ファイルを開いて編集できます。",
       issues: "画像のスキップや処理の失敗の理由を確認できます。",
       "dialog-close": "結果の画面を閉じます。",
       "dialog-filter": "ファイル名の一部やタグの完全一致で絞り込みます。",
       "dialog-files": "表示する画像と対応するテキストを選びます。",
       "dialog-text": "この画像の出力を確認できます。保存済みの結果はここで編集できます。",
+      "dialog-save-batch": "フォルダー内の画像を一括解析し、結果を .txt に保存します。",
       "dialog-save": "選択中の画像のテキストに編集内容を保存します。",
     },
   };
@@ -150,27 +150,27 @@
       makeText, refreshAnalysisIndicators} = options;
     const byId = name => panel.querySelector("#fhit-batch-" + name);
     const choose = byId("choose"), start = byId("start"), stop = byId("stop");
-    const preview = byId("preview"), review = byId("review");
+    const singleView = byId("single-view"), batchView = byId("folder-view");
+    const preview = byId("preview"), reopenPreview = byId("reopen-preview"), review = byId("review");
     const chooseDestination = byId("destination"), resetDestination = byId("reset");
     const folderName = byId("folder"), status = byId("status");
     const saveFolderName = byId("save-folder"), format = byId("format");
     const prefix = byId("prefix"), exclude = byId("exclude"), replace = byId("replace");
     const rules = () => compileRules(prefix.value, exclude.value);
-    const openReview = window.forgeHybridTaggerReview(panel, {msg, splitPrompt, tagKey, writeText});
+    const openReview = window.forgeHybridTaggerReview(panel, {
+      msg, splitPrompt, tagKey, writeText, savePreview: () => runFolder(false)
+    });
     const issues = byId("issues"), issueList = byId("issue-list");
     const summaries = {
-      section: panel.querySelector(".batch-strip > summary"),
-      rules: panel.querySelector(".batch-rules > summary"),
       issues: issues.querySelector(":scope > summary"),
     };
     const supported = typeof window.showDirectoryPicker === "function";
-    const section = summaries.section.parentElement, originalParent = section.parentElement;
-    const lmSettings = panel.querySelector("#fhit-lm-settings");
+    const section = byId("workspace");
     const errorMessage = options.errorMessage || msg;
     const lmResults = new Map();
-    const openByMode = {tagger:section.open, lm:false};
     let cacheScope = "", imageCount = null;
-    let folder = null, destination = null, choosing = false, active = null, result = null;
+    let folder = null, destination = null, choosing = false, active = null, result = null, showFolder = false;
+    let previewRows = [];
     let issueResult = null, issueCount = 0, issueLanguage = "";
     let helpLanguage;
 
@@ -179,33 +179,36 @@
       const current = settings();
       const isLM = current.mode === "lm";
       const shown = active?.settings || current;
-      if (isLM && lmSettings && section.parentElement === originalParent) {
-        openByMode.tagger = section.open;
-        lmSettings.before(section);
-        section.open = Boolean(active) || openByMode.lm;
-      } else if (!isLM && section.parentElement !== originalParent) {
-        openByMode.lm = section.open;
-        originalParent.append(section);
-        section.open = Boolean(active) || openByMode.tagger;
+      const textOnly = isLM && current.kind === "expand" && !active;
+      if (textOnly && showFolder) {
+        showFolder = false;
+        if (section.contains(document.activeElement)) singleView.focus();
       }
-      section.classList.toggle("batch-running", Boolean(active));
-      format.closest(".batch-controls").hidden = isLM;
+      section.hidden = !showFolder;
+      panel.classList.toggle("folder-active", showFolder);
+      singleView.setAttribute("aria-pressed", String(!showFolder));
+      batchView.setAttribute("aria-pressed", String(showFolder));
+      batchView.disabled = textOnly;
+      batchView.title = msg(textOnly ? "batchImageOnly" : "batchFolderViewHint");
+      format.closest("label").hidden = isLM;
       prefix.closest("label").hidden = exclude.closest("label").hidden = isLM;
-      summaries.rules.firstElementChild.textContent = msg(isLM ? "batchSavingOptions" : "batchRules");
       if (helpLanguage !== language) {
         for (const [name, hint] of Object.entries(batchHelp[language])) (summaries[name] || byId(name)).title = hint;
         helpLanguage = language;
       }
-      if (isLM) summaries.rules.title = msg("batchSavingOptions");
-      else summaries.rules.title = batchHelp[language].rules;
-      const selection = folder ? [folder.name, isLM && imageCount !== null && msg("batchImageCount").replace("{n}", imageCount)].filter(Boolean).join(" · ") : "";
-      folderName.textContent = folderName.title = selection;
-      folderName.hidden = !selection;
-      saveFolderName.textContent = saveFolderName.title = destination?.name || msg("batchSameFolder");
+      const fileCount = imageCount === null ? "" :
+        msg(imageCount === 1 ? "batchOneImage" : "batchImageCount").replace("{n}", imageCount);
+      folderName.textContent = folderName.title = folder ? [folder.name, fileCount].filter(Boolean).join(" · ") : msg("batchNoFolder");
+      saveFolderName.textContent = saveFolderName.title =
+        destination?.name || [msg("batchSameFolder"), folder?.name].filter(Boolean).join(" · ");
+      choose.classList.toggle("primary", !folder);
+      choose.classList.toggle("quiet", Boolean(folder));
       choose.disabled = chooseDestination.disabled = !supported || choosing || Boolean(active);
       resetDestination.hidden = !destination;
       resetDestination.disabled = choosing || Boolean(active);
       review.disabled = !folder || choosing || Boolean(active);
+      reopenPreview.hidden = !previewRows.length;
+      reopenPreview.disabled = review.disabled;
       start.disabled = preview.disabled = review.disabled || current.ready === false;
       format.disabled = prefix.disabled = exclude.disabled = replace.disabled = !supported || Boolean(active);
       start.hidden = Boolean(active);
@@ -214,12 +217,6 @@
       byId("settings").textContent = settingsLabel(shown);
       options.batchActivity?.(active);
 
-      const selectedRules = active?.settings.rules || rules();
-      byId("rule-summary").textContent = [
-        !isLM && selectedRules.first.size && msg("batchAdded").replace("{n}", selectedRules.first.size),
-        !isLM && selectedRules.excluded.size && msg("batchExcluded").replace("{n}", selectedRules.excluded.size),
-        replace.checked && msg("batchReplacing")
-      ].filter(Boolean).join(" · ");
       byId("hint").textContent = msg(replace.checked ? "batchReplaceHint" : "batchHint");
 
       const state = active || result;
@@ -235,6 +232,13 @@
             .map(([key, count]) => msg(key).replace("{n}", state[count])).join(" · "));
         }
         if (state.reused) parts.push(msg("batchReused").replace("{n}", state.reused));
+      } else if (!folder) {
+        parts.push(msg("batchSelectInput"));
+      } else if (isLM && current.ready === false) {
+        parts.push(msg(!current.model ? "batchSelectModel" :
+          !current.sections.length ? "batchSelectTopics" : "batchLMUnavailable"));
+      } else if (imageCount === 0) {
+        parts.push(msg("batchEmpty"));
       }
       const notice = parts.join(" · ");
       if (status.textContent !== notice) status.textContent = notice;
@@ -323,16 +327,16 @@
         const selected = await window.showDirectoryPicker(saveFolder ? writeAccess : readAccess);
         if (saveFolder) destination = selected;
         else {
+          let count = 0;
+          for await (const handle of selected.values()) {
+            if (handle.kind === "file" && imageExtension.test(handle.name)) count += 1;
+          }
           if (folder !== selected && (!folder || !await selected.isSameEntry(folder))) lmResults.clear();
           folder = selected;
-          imageCount = null;
-          if (settings().mode === "lm") {
-            let count = 0;
-            for await (const handle of selected.values()) if (handle.kind === "file" && imageExtension.test(handle.name)) count++;
-            imageCount = count;
-          }
+          imageCount = count;
         }
         result = null;
+        previewRows = [];
       } catch (error) {
         if (error.name !== "AbortError") {
           result = {phase: saveFolder ? "batchDestinationError" : "batchFolderError", error: true};
@@ -397,7 +401,7 @@
         if (run.stopped) run.phase = "batchStopped";
         finish(run);
       }
-      if (!run.stopped && rows) openReview(rows, target);
+      if (!run.stopped && rows && showFolder) openReview(rows, target);
     }
 
     async function runFolder(tryOnly) {
@@ -420,6 +424,7 @@
       }
       const run = begin(tryOnly ? "preview" : "save", selected);
       const samples = [];
+      const written = [];
       try {
         if (await target.requestPermission(tryOnly ? readAccess : writeAccess) !== "granted") {
           throw new Error(tryOnly ? "batchReadPermission" : "batchPermission");
@@ -479,7 +484,7 @@
             stage = "batchAnalyzeError";
             if (run.settings.mode !== "lm" && !run.models) run.models = await readModels(run.settings);
             if (run.stopped) break;
-            run.phase = run.settings.mode === "lm" ? "analyzing" : "queued";
+            run.phase = tryOnly ? "batchPreviewing" : run.settings.mode === "lm" ? "analyzing" : "queued";
             render();
             const text = await analyzeFile(run, file);
             if (run.stopped) break;
@@ -496,8 +501,12 @@
             stage = "batchWriteError";
             run.phase = "batchWriting";
             render();
-            const outcome = await writeText(target, caption?.name || textName, text ? text + "\n" : "", {run, before});
-            if (outcome === "saved") run.saved += 1;
+            const outputName = caption?.name || textName;
+            const outcome = await writeText(target, outputName, text ? text + "\n" : "", {run, before});
+            if (outcome === "saved") {
+              run.saved += 1;
+              written.push({handle, outputName});
+            }
             else if (outcome === "exists") run.skipped += 1;
             else if (outcome === "changed") {
               run.skipped += 1;
@@ -516,27 +525,43 @@
         if (run.releaseError) throw new Error(run.releaseError);
         if (run.stopped) run.phase = "batchStopped";
         else if (!run.total) run.phase = "batchEmpty";
-        else if (tryOnly) run.phase = work.length ? "batchPreviewDone" : "batchPreviewEmpty";
+        else if (tryOnly) run.phase = samples.length ? "batchPreviewDone" : "batchPreviewEmpty";
         else run.phase = "batchDone";
       } catch (error) {
         failedRun(run, error);
       } finally {
+        if (tryOnly && !run.stopped) previewRows = samples;
         finish(run);
       }
-      if (!run.stopped && samples.length) openReview(samples);
+      if (run.stopped || run.error || !showFolder || !section.getClientRects().length) return;
+      if (samples.length) {
+        openReview(samples);
+      } else if (written.length) {
+        const rows = await Promise.allSettled(written.map(async ({handle, outputName}) => ({
+          handle, caption: await target.getFileHandle(outputName)
+        })));
+        if (!active && result === run && showFolder && section.getClientRects().length) {
+          const saved = rows.filter(row => row.status === "fulfilled").map(row => row.value);
+          if (saved.length) openReview(saved, target);
+        }
+      }
     }
 
+    singleView.addEventListener("click", () => { showFolder = false; render(); });
+    batchView.addEventListener("click", () => { showFolder = true; render(); });
     choose.addEventListener("click", () => void chooseFolder(false));
     chooseDestination.addEventListener("click", () => void chooseFolder(true));
     resetDestination.addEventListener("click", () => {
       destination = null;
       result = null;
+      previewRows = [];
       render();
       chooseDestination.focus();
     });
     start.addEventListener("click", () => void runFolder(false));
     preview.addEventListener("click", () => void runFolder(true));
     review.addEventListener("click", () => void browseSaved());
+    reopenPreview.addEventListener("click", () => openReview(previewRows));
     prefix.addEventListener("input", render);
     exclude.addEventListener("input", render);
     replace.addEventListener("change", render);
