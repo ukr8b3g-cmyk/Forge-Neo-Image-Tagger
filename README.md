@@ -1,5 +1,114 @@
 # Forge Neo Image Tagger
 
+[日本語](#日本語)
+
+Turn a reference image into a prompt in Forge Neo’s **Image Tagger** tab. Use **WD** or **PixAI** for editable Danbooru-style tags and folder batches. Choose **LM Studio** to describe one image, extract tags from it, or expand a short idea into a prompt.
+
+## Install the extension
+
+From your Forge Neo root folder, run the following command and then restart Forge Neo. Open the **Image Tagger** tab. This extension targets Forge Neo with Gradio 4.
+
+```shell
+git clone https://github.com/ukr8b3g-cmyk/Forge-Neo-Image-Tagger.git extensions/Forge-Neo-Image-Tagger
+```
+
+For a ZIP installation, extract **Source code (zip)** from [Releases](https://github.com/ukr8b3g-cmyk/Forge-Neo-Image-Tagger/releases) and place the folder containing `scripts` and `ui` directly under `extensions`. Keep a single copy of the extension. WD and PixAI use Pillow, NumPy and ONNX Runtime in Forge’s Python environment. Use `onnxruntime` for CPU or a compatible `onnxruntime-gpu` build for CUDA. [ONNX Runtime CUDA compatibility](https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html#requirements)
+
+## WD and PixAI
+
+![Reference image, editable tags and prompt preview](docs/images/tagger.png)
+
+Choose **WD** or **PixAI**, drop a PNG, JPEG or WebP into **Reference image**, then click **Analyze**. Use **Character Only** for hair, facial features, clothing and accessories. Remove unwanted **Adopted tags**, add your own, or select from **Candidates**. Hover over a detected tag to see its score.
+
+![Tagger model download locations, readiness and memory controls](docs/images/tagger-models.png)
+
+Open **Models** to see which files are ready and where they are stored. **Auto-download** fetches the selected model when first needed. **Open folder** shows its files. **Unload now** frees memory. **Delete** asks for confirmation before removing that model’s downloaded files.
+
+![Standard, Detailed and Full tagger outputs side by side](docs/images/compare-tags.png)
+
+Choose **Tags**, **Tags + Description** or **Description**. **Compare prompts** shows **Standard**, **Detailed** and **Full** from one analysis. Full includes lower-scoring general tags. Click a column heading to select the version to copy or send. **Group prompt by subject** puts related details on separate lines in the preview, clipboard and saved text.
+
+![Folder batch input, save folder and output format](docs/images/folder-batch.png)
+
+**Folder batch** is available in **WD** and **PixAI**. Click **Choose image folder**, optionally choose a different save folder, then click **Save .txt files**. For example, `sample.png` produces `sample.txt` in UTF-8. The default is to save alongside each image and skip existing text files. LM Studio processes one reference image at a time.
+
+### Batch options
+
+- Choose the output format and optionally enter common prefix tags or exclusions. **Try 3** previews up to three eligible images before writing.
+- The batch processes images directly inside the selected folder. To replace existing text, select the update option and review the count. The results show name conflicts, skipped files and failures. Stopping a batch preserves files already written.
+- **View results** opens each image beside its saved text. Filter by filename or tag, edit the text and save your changes. Batch and trial runs reuse detection scores from Forge’s `cache/image_tagger/analysis.sqlite3` when the image, model revision and device configuration match.
+- Use a browser with folder write access, such as Edge or Chrome, on localhost or HTTPS. [Browser folder access](https://developer.chrome.com/docs/capabilities/web-apis/file-system-access#opening_a_directory_and_enumerating_its_contents)
+
+## Set up LM Studio
+
+WD and PixAI work on their own. For captions and text expansion, set up LM Studio once on the computer running Forge.
+
+1. Install and launch [LM Studio](https://lmstudio.ai/download). Open **Discover** and search for one of the two models below. For a GGUF vision model, choose a model file that fits your hardware (for example, **Q4_K_M**) and its matching **mmproj** vision projector from the same distribution. [Getting started with LM Studio](https://lmstudio.ai/docs/app/basics)
+2. Load the downloaded model using the model picker in **Chat**. To check image support, attach a picture and ask for a short caption. In **Developer**, turn on the local server and note its address. The default is `http://127.0.0.1:1234`. [LM Studio local server guide](https://lmstudio.ai/docs/developer/rest/quickstart)
+3. In Forge, open **Image Tagger → LM Studio → Model settings** below the analysis button. Enter the server’s base URL, click **Refresh models**, and select the downloaded model. Choose **Image Caption**, add an image and click **Analyze image**. If the model is missing from the image task, check that it can accept an image in LM Studio and that the server address matches.
+
+| Caption model | When to choose it |
+|---|---|
+| **Qwen3-VL-8B-NSFW-Caption-V4.5** | Recommended starting point for detailed descriptions and prompted analysis of appearance, setting, composition and light. This is the model used for the extension’s local caption and text-expansion checks. [Model card](https://huggingface.co/thesby/Qwen3-VL-8B-NSFW-Caption-V4.5) · [GGUF and projector](https://huggingface.co/mradermacher/Qwen3-VL-8B-NSFW-Caption-V4.5-GGUF) |
+| **JoyCaption Beta One** | An image-captioning model to try when you want another description of the same picture. Search for `llama-joycaption-beta-one-hf-llava`. The local extension lists it as vision-capable. [Model card](https://huggingface.co/fancyfeast/llama-joycaption-beta-one-hf-llava) · [GGUF and projector](https://huggingface.co/concedo/llama-joycaption-beta-one-hf-llava-mmproj-gguf) |
+
+## Use LM Studio in Forge
+
+![Image Caption task and the generated English prompt](docs/images/lm-caption.png)
+
+Start with **Image Caption** and **Detailed**, the first-use settings. **Image Tags** generates tags from an image. **Expand Text** turns a short idea into a prompt without a reference image. For text expansion, **English** is the default output language and **Auto** follows the input or its language instruction. Explicit dialogue and readable lettering can retain the original script inside an English description. Image transcription accuracy depends on the model.
+
+![Six selectable image analysis topics](docs/images/lm-topics.png)
+
+Open **Analysis topics** below the analysis button. All six topics start enabled. Select **Appearance** alone to focus on shapes, colors, garments or markings. After analysis, toggling a topic already analyzed updates the output immediately. Run analysis again to include a topic omitted from the original request.
+
+![LM Studio model picker, memory policy and server address](docs/images/lm-model.png)
+
+Open **Model settings** to change models, refresh the list or edit the connection. **Model memory** can release the selected local model before Forge generation, unload it after each request, or leave memory management to LM Studio. Use **Unload selected model now** for manual release.
+
+![System prompt text and named presets](docs/images/lm-system.png)
+
+Edit **Shared system prompt** to change the writing instructions. Give it a preset name and click **Save** to reuse it. **Load** restores the saved preset. **Reset** restores the built-in instructions for the current task. Image analysis and text expansion have different built-in instructions.
+
+![Generation settings and sampling controls](docs/images/lm-generation.png)
+
+Open **Generation settings** to adjust **Temperature**, **Top P** and **Max tokens**. Recognized models and model families can supply starting values by task. **Default** leaves that parameter to LM Studio. Named generation presets store the task and settings. Presets are shared by browsers connected to this Forge installation through `image_tagger/lm_studio.sqlite3` in its data folder.
+
+![Standard and Detailed LM Studio prompts compared in two columns](docs/images/compare-lm.png)
+
+**Compare prompts** shows **Standard** and **Detailed** from one generation. Click a heading to use that version. The browser remembers your last detail level and whether comparison was open. On desktop, the two columns initially align with the reference panel. Drag the handle below them to save a different height. Double-click it or press Escape to restore automatic sizing.
+
+## Copy or send a prompt
+
+![Copy, Add, Replace and the two send buttons](docs/images/send.png)
+
+Click **Copy** for the selected prompt. To send it directly to Forge, choose **Add** to append to the positive prompt or **Replace** to overwrite it, then click **Send to txt2img** or **Send to img2img**. The extension remembers the send method. **Group prompt by subject** also applies to the copied or sent text.
+
+## Text, dialogue and MOSS layout
+
+In WD or PixAI, open **Text & Dialogue** below the reference image. Use automatic detection to read Japanese text or draw a box around a passage. You can also enter text manually. Select a numbered entry to highlight its box, correct its wording and order, then accept it. Accepted lines appear in **Tags + Description** and **Description**. After editing a line, accept it again to include the correction.
+
+Automatic reading downloads a text detector (about 11 MB) and Manga OCR (about 444 MB) on first use. Reading a selected region uses Manga OCR alone. Manual text entry works immediately. Files are checked by size and SHA-256 under `image_tagger/ocr` in Forge’s models folder. [Manga OCR](https://github.com/kha-white/manga-ocr) · [Text and bubble detector](https://huggingface.co/ogkalu/comic-text-and-bubble-detector)
+
+Speaker estimation suggests which character spoke each line. Review the numbered candidates or select a person in the image. You can add a person manually and adjust both character and bubble boxes. **MOSS JSON** exports accepted dialogue with its positions for the MOSS-Image-Base positive prompt. Check the generation dimensions before copying or saving. Automatic speaker estimation downloads MAGI v2 (about 2.06 GB) on first use. See its model terms before using it. [MOSS layout guide](https://github.com/OpenMOSS/MOSS-Image/blob/main/USERGUIDE.md#layout-prompts-experimental) · [MAGI v2 model card](https://huggingface.co/ragavsachdeva/magiv2)
+
+## Tagger models and memory
+
+| Model | Files under Forge’s models folder | Source |
+|---|---|---|
+| PixAI Tagger v1.0 FP16 | `image_tagger/pixai_v1_fp16/` — `model_fp16.onnx`, `selected_tags.csv`, `preprocess.json` | [Mexes ONNX conversion](https://huggingface.co/Mexes/pixai-tagger-v1.0-onnx-fp32-fp16-int8) |
+| WD EVA02 Large v3 | `image_tagger/wd_eva02_large_v3/` — `model.onnx`, `selected_tags.csv` | [SmilingWolf](https://huggingface.co/SmilingWolf/wd-eva02-large-tagger-v3) |
+
+Choose **Unload after analysis** (default), timed unloading or keep-loaded under **Models**. **Auto** uses CUDA when available and falls back to CPU when needed. Tagger sessions are released before Forge image generation. To reuse existing compatible model files, set their shared parent directory in **Settings → Image Tagger**. The model panel shows the resolved paths.
+
+The taggers accept still images up to 64 MiB and 64 million pixels. While an analysis is running, switching modes keeps the current job on its original model and preserves the preview until the next result is ready. Resize the reference image from its lower-right corner. The preview and comparison handles also support arrow keys.
+
+## Verification and credits
+
+Initial Windows checks on Forge Neo `6d5aa3bc` (Gradio 4.40.0) covered model download integrity, CPU and CUDA inference, switching detail levels without rerunning analysis, clipboard output and transfer to both Forge tabs. The original implementation draws on Anima Character Sheet Designer for tagger preprocessing and model verification. [Upstream project](https://github.com/ukr8b3g-cmyk/Anima-Character-Sheet-Designer) · [License](LICENSE) · [Artwork and model notices](NOTICE.md)
+
+## 日本語
+
 Forge Neo の **Image Tagger** タブで、WD・PixAI によるタグ抽出と、LM Studio による画像解析・文章からのプロンプト補完を使えます。
 
 ## 導入
@@ -94,7 +203,20 @@ Forge の Python 環境に Pillow、NumPy と、互換性のある ONNX Runtime 
 
 ## LM Studio で画像解析・文章補完
 
-1. **LM Studio** を選び、入力欄の上で **画像から説明文**、**画像からタグ**、**短文を補完** のいずれかを選びます。初回の用途は **画像から説明文**、詳しさは **標準** です。
+### 初めて使うとき
+
+1. Forge と同じパソコンに [LM Studio](https://lmstudio.ai/download) をインストールします。アプリの **Discover** で下のモデル名を検索し、使いたい方を1つダウンロードしてください。GGUF 版では、パソコンに合うモデル本体（例：**Q4_K_M**）と、同じ配布元の画像入力用ファイル **mmproj** を組み合わせます。[LM Studio 導入ガイド](https://lmstudio.ai/docs/app/basics)
+2. **Chat** のモデル選択欄でダウンロードしたモデルを読み込みます。画像を1枚添付して説明を頼むと、画像入力が使えるか確かめられます。次に **Developer** でローカルサーバーをオンにし、表示されたアドレスを確認します。標準は `http://127.0.0.1:1234` です。[ローカルサーバーの起動手順](https://lmstudio.ai/docs/developer/rest/quickstart)
+3. Forge の **Image Tagger → LM Studio** で、解析ボタンの下にある **モデル設定** を開きます。サーバーのアドレスを入れ、**モデル一覧を更新** して使用するモデルを選びます。**画像から説明文** で参照画像を入れ、**画像を解析** を押してください。画像用の一覧にモデルが出ない場合は、LM Studio の Chat で画像を添付できるか、接続先が Developer の表示と一致するかを確認します。
+
+| キャプション向けモデル | 選び方 |
+|---|---|
+| **Qwen3-VL-8B-NSFW-Caption-V4.5** | 最初の1本に推奨します。外見・背景・構図・光など、項目を指定した詳しい説明に向いています。この拡張で画像説明と短文補完を実機確認したモデルです。[モデルカード](https://huggingface.co/thesby/Qwen3-VL-8B-NSFW-Caption-V4.5) · [GGUF 本体と画像入力用ファイル](https://huggingface.co/mradermacher/Qwen3-VL-8B-NSFW-Caption-V4.5-GGUF) |
+| **JoyCaption Beta One** | 同じ画像を別のモデルならどう説明するか、キャプションを比べたいときの候補です。検索名は `llama-joycaption-beta-one-hf-llava`。この環境では画像対応モデルとして一覧に表示されることを確認しています。[モデルカード](https://huggingface.co/fancyfeast/llama-joycaption-beta-one-hf-llava) · [GGUF 本体と画像入力用ファイル](https://huggingface.co/concedo/llama-joycaption-beta-one-hf-llava-mmproj-gguf) |
+
+### 解析と短文補完
+
+1. **LM Studio** を選び、入力欄の上で **画像から説明文**、**画像からタグ**、**短文を補完** のいずれかを選びます。初回は **画像から説明文** と **詳細（Detailed）** が選ばれます。詳しさを変更すると、次回も前回の選択で開きます。
 2. **画像を解析** または **プロンプトを補完** のボタンより下にある設定欄の先頭に **モデル設定** があります。ここで LM Studio の接続先、モデル、解放方法を確認します。推奨は **Qwen3-VL 8B** です。この拡張では `qwen3-vl-8b-nsfw-caption-v4.5` で動作を確認しています。JoyCaption など他の対応モデルも選べます。画像の用途には画像対応モデルが表示されます。
 3. 画像を入れて **画像を解析**、または短い文章を入力して **プロンプトを補完** を押します。短文補完は **出力言語** で **英語** または **自動** を選べます。初回は英語です。自動では入力文の言語または文中の言語指定に従います。画像内に表示する文字として指定した文は原文を保ちます。
 
@@ -117,6 +239,8 @@ Forge の Python 環境に Pillow、NumPy と、互換性のある ONNX Runtime 
 LM Studio へは共通プロンプトと選択した用途の処理指示を渡します。
 
 ## フォルダー一括
+
+フォルダー内の画像を一括でタグ付けしてテキストに保存できるのは **WD** と **PixAI** です。現在の **LM Studio** モードでは、参照画像を1枚ずつ指定して解析します。
 
 1. **参照画像** の下にある **フォルダー一括（Folder batch）** を開き、**画像フォルダーを選ぶ** を押します。保存先は初期状態では画像と同じ場所です。別の場所に出力するには **保存先を選ぶ** を押します。
 2. 一括保存の **出力形式** を選びます。既定は **タグ** で、**タグ＋説明文** と **説明文** も選べます。**共通タグと保存設定** を開くと、先頭に追加するタグと除外するタグをカンマ区切りで入力できます。先頭タグは **タグ** と **タグ＋説明文** で使われます。共通タグ欄の入力はページを開いている間に有効です。

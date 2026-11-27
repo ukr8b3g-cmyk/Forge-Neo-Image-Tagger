@@ -250,7 +250,7 @@
     el("system").value = (systemName ? savedSystem : customSystem) ?? defaultSystemForTask(initialTask);
     let systemPresets = [], systemReady = false, systemBusy = false, systemSeq = 0, systemError = "";
     el("system-name").value = systemName;
-    let level = levels.includes(prefs.level) ? prefs.level : "detailed";
+    let level = levels.includes(prefs.level) ? prefs.level : "full";
     const formatPrompt = el("format-prompt");
     formatPrompt.checked = prefs.formatted !== false;
     let textOutputLanguage = prefs.textOutputLanguage === "auto" ? "auto" : "english";
