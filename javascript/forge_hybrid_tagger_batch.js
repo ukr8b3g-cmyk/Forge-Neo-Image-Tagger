@@ -278,14 +278,16 @@
         const hash = await captionHash(file);
         if (run.stopped) return "";
         const key = Array.from(hash, byte => byte.toString(16).padStart(2, "0")).join("");
-        let response = lmResults.get(key);
-        if (response) run.reused += 1;
-        else {
-          response = await options.lmGenerate(s.config, file, s.url);
-          lmResults.set(key, response);
-          if (response.releaseError) run.releaseError = response.releaseError;
+        const cached = lmResults.get(key);
+        if (cached) {
+          run.reused += 1;
+          return options.lmText(cached, s);
         }
-        return options.lmText(response, s);
+        const response = await options.lmGenerate(s.config, file, s.url);
+        if (response.releaseError) run.releaseError = response.releaseError;
+        const text = options.lmText(response, s);
+        if (text) lmResults.set(key, response);
+        return text;
       }
       const started = await startAnalysis(file, run.settings);
       run.jobId = started.id;
