@@ -166,11 +166,13 @@
     };
     const supported = typeof window.showDirectoryPicker === "function";
     const section = byId("workspace");
+    const outputControls = byId("output-controls");
     const errorMessage = options.errorMessage || msg;
     const lmResults = new Map();
     let cacheScope = "", imageCount = null;
     let folder = null, destination = null, choosing = false, active = null, result = null, showFolder = false;
     let previewRows = [];
+    let previewSettings;
     let issueResult = null, issueCount = 0, issueLanguage = "";
     let helpLanguage;
 
@@ -186,6 +188,8 @@
       }
       section.hidden = !showFolder;
       panel.classList.toggle("folder-active", showFolder);
+      options.showBatchOutput?.(showFolder ? outputControls : null, isLM);
+      outputControls.inert = Boolean(active);
       singleView.setAttribute("aria-pressed", String(!showFolder));
       batchView.setAttribute("aria-pressed", String(showFolder));
       batchView.disabled = textOnly;
@@ -280,18 +284,17 @@
         const s = run.settings;
         if (file.size > 64 * 1024 * 1024) throw new Error("image_size");
         const hash = await captionHash(file);
-        if (run.stopped) return "";
+        if (run.stopped) return;
         const key = Array.from(hash, byte => byte.toString(16).padStart(2, "0")).join("");
         const cached = lmResults.get(key);
         if (cached) {
           run.reused += 1;
-          return options.lmText(cached, s);
+          return settings => options.lmText(cached, settings);
         }
         const response = await options.lmGenerate(s.config, file, s.url);
         if (response.releaseError) run.releaseError = response.releaseError;
-        const text = options.lmText(response, s);
-        if (text) lmResults.set(key, response);
-        return text;
+        if (options.lmText(response, s)) lmResults.set(key, response);
+        return settings => options.lmText(response, settings);
       }
       const started = await startAnalysis(file, run.settings);
       run.jobId = started.id;
@@ -307,7 +310,8 @@
             run.jobId = null;
             if (current.state !== "done") throw new Error(current.error || current.state);
             if (current.results.length && current.results.every(outcome => outcome.cached)) run.reused += 1;
-            return makeText(current.results, run.models, run.settings);
+            const models = run.models;
+            return settings => makeText(current.results, models, settings);
           }
           if (run.phase !== current.state) {
             run.phase = current.state;
@@ -318,6 +322,15 @@
       } finally {
         cancelJob(run);
       }
+    }
+
+    function openPreview() {
+      const current = settings();
+      const layout = current.mode === previewSettings.mode ?
+        {...previewSettings, level: current.level, formatted: current.formatted} : previewSettings;
+      openReview(previewRows.map(({handle, imageFile, renderText}) => ({
+        handle, imageFile, text: renderText(layout)
+      })));
     }
 
     async function chooseFolder(saveFolder) {
@@ -486,15 +499,16 @@
             if (run.stopped) break;
             run.phase = tryOnly ? "batchPreviewing" : run.settings.mode === "lm" ? "analyzing" : "queued";
             render();
-            const text = await analyzeFile(run, file);
+            const renderText = await analyzeFile(run, file);
             if (run.stopped) break;
+            const text = renderText(run.settings);
             if (!text && (run.settings.mode === "lm" || run.settings.format === "description")) {
               run.skipped += 1;
               addIssue(run, handle.name, run.settings.mode === "lm" ? "batchNoPrompt" : "batchNoDescription");
               continue;
             }
             if (tryOnly) {
-              samples.push({handle, imageFile: file, text});
+              samples.push({handle, imageFile: file, renderText});
               run.saved += 1;
               continue;
             }
@@ -530,12 +544,15 @@
       } catch (error) {
         failedRun(run, error);
       } finally {
-        if (tryOnly && !run.stopped) previewRows = samples;
+        if (tryOnly && !run.stopped) {
+          previewRows = samples;
+          previewSettings = run.settings;
+        }
         finish(run);
       }
       if (run.stopped || run.error || !showFolder || !section.getClientRects().length) return;
       if (samples.length) {
-        openReview(samples);
+        openPreview();
       } else if (written.length) {
         const rows = await Promise.allSettled(written.map(async ({handle, outputName}) => ({
           handle, caption: await target.getFileHandle(outputName)
@@ -561,7 +578,7 @@
     start.addEventListener("click", () => void runFolder(false));
     preview.addEventListener("click", () => void runFolder(true));
     review.addEventListener("click", () => void browseSaved());
-    reopenPreview.addEventListener("click", () => openReview(previewRows));
+    reopenPreview.addEventListener("click", openPreview);
     prefix.addEventListener("input", render);
     exclude.addEventListener("input", render);
     replace.addEventListener("change", render);

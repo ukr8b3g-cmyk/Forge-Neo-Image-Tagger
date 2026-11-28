@@ -307,6 +307,15 @@
 }
 #forge-hybrid-tagger .batch-folder .batch-path { color: var(--text); }
 #forge-hybrid-tagger .batch-rules { margin-top: 12px; border-top: 1px solid var(--soft-border); padding-top: 8px; }
+#forge-hybrid-tagger #fhit-batch-output-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-bottom: 8px;
+}
+#forge-hybrid-tagger #fhit-batch-output-controls > .detail-row { margin-top: 0; }
+#forge-hybrid-tagger .lm-output-format { display: contents; }
 #forge-hybrid-tagger .batch-tag-options { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 #forge-hybrid-tagger .batch-tag-options > label { display: grid; gap: 4px; min-width: 0; font-size: 12px; }
 #forge-hybrid-tagger .batch-tag-options :is(input, select) { width: 100%; min-width: 0; }

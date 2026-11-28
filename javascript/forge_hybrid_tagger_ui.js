@@ -761,6 +761,8 @@
     }
 
     let lm;
+    const taggerOutputControls = byId("format-prompt").closest(".detail-row");
+    const taggerPreview = byId("single-preview");
     const renderBatch = window.forgeHybridTaggerBatch(panel, {
       msg, locale: () => state.language,
       compileRules: C.compileRules,
@@ -775,6 +777,18 @@
         [modeName(s.mode), msg(s.level), ...(s.formatted ? [msg("batchFormatted")] : [])].join(" · "),
       lmGenerate: (config, file, url) => lm.generate(config, file, url),
       lmText: (response, s) => lm.batchText(response, s),
+      showBatchOutput(target, isLM) {
+        if (target && !isLM) {
+          if (taggerOutputControls.parentElement !== target) {
+            target.append(taggerOutputControls);
+            taggerOutputControls.querySelectorAll('[data-action="level"]').forEach(button => { button.disabled = false; });
+          }
+        } else if (taggerOutputControls.parentElement !== taggerPreview.parentElement) {
+          taggerPreview.before(taggerOutputControls);
+          taggerOutputControls.querySelectorAll('[data-action="level"]').forEach(button => { button.disabled = Boolean(state.tagEdit); });
+        }
+        lm?.showBatchOutput(isLM ? target : null);
+      },
       errorMessage: key => lm?.translateError(key) || msg(key),
       batchActivity(run) {
         state.lmBatch = run?.settings.mode === "lm" && run.purpose !== "review" ? run : null;
@@ -1451,7 +1465,7 @@
       }
       const editing = Boolean(state.tagEdit);
       pressed("level", state.level);
-      for (const button of panel.querySelectorAll('button[data-action="level"]')) button.disabled = editing;
+      for (const button of panel.querySelectorAll('button[data-action="level"]')) button.disabled = editing && !panel.classList.contains("folder-active");
       pressed("format", state.format);
       const result = output(state.level, tags);
       const compare = byId("compare");

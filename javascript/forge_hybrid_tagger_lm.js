@@ -207,12 +207,13 @@
     el("result").style.resize = "none";
     outputLabel.insertAdjacentHTML("beforebegin",
       '<div class="format-row lm-output-controls">' +
+        '<div class="lm-output-format">' +
         '<div class="control-pair"><strong class="field-label" id="fhit-lm-level-label" data-lm="level"></strong>' +
         '<div class="segments" role="group" aria-labelledby="fhit-lm-level-label">' +
         levels.map(level => '<button type="button" id="fhit-lm-level-' + level + '" data-lm="' + level + '" aria-pressed="false"></button>').join("") +
         '</div></div>' +
         '<div class="checkbox prompt-format"><input id="fhit-lm-format-prompt" type="checkbox">' +
-        '<label for="fhit-lm-format-prompt" data-i18n="formatPrompt"></label></div>' +
+        '<label for="fhit-lm-format-prompt" data-i18n="formatPrompt"></label></div></div>' +
         '<button type="button" class="secondary compare-toggle" id="fhit-lm-compare" aria-pressed="false" aria-expanded="false" aria-controls="fhit-lm-comparison"></button>' +
       '</div>');
     outputLabel.insertAdjacentHTML("afterend",
@@ -253,6 +254,9 @@
     let level = levels.includes(prefs.level) ? prefs.level : "full";
     let batchBusy = false;
     const formatPrompt = el("format-prompt");
+    const outputControls = formatPrompt.closest(".lm-output-format");
+    const singleOutputRow = outputControls.parentElement;
+    let batchOutput = false;
     formatPrompt.checked = prefs.formatted !== false;
     let textOutputLanguage = prefs.textOutputLanguage === "auto" ? "auto" : "english";
     let resultItems = null, resultText = "", analyzedSections = null;
@@ -535,7 +539,7 @@
       return resultTask === "tags" ? splitPrompt(resultText).join(", ") : resultText.replace(/\s*[\r\n]+\s*/g, " ");
     }
     function renderDetailControls() {
-      const current = visibleLevel();
+      const current = batchOutput ? level : visibleLevel();
       const hasItems = Boolean(resultItems?.length);
       const comparing = hasItems && prefs.comparison === true;
       outputLabel.hidden = comparing;
@@ -554,7 +558,7 @@
       levels.forEach((key, index) => {
         const selected = current === key;
         const levelButton = el("level-" + key);
-        levelButton.disabled = Boolean(resultText) && !selected;
+        levelButton.disabled = !batchOutput && Boolean(resultText) && !selected;
         levelButton.setAttribute("aria-pressed", String(selected));
         levelButton.title = localized(resultText ? stateHelp.single : stateHelp[key]);
         if (!comparing) return;
@@ -809,6 +813,13 @@
     el("url").addEventListener("change", () => { revision++; void refreshModels(); });
     return {select,translate, busy:() => busy,
       batchSettings, generate, translateError:tr,
+      showBatchOutput(target) {
+        if (outputControls.parentElement === (target || singleOutputRow)) return;
+        batchOutput = Boolean(target);
+        if (target) target.append(outputControls);
+        else singleOutputRow.prepend(outputControls);
+        renderDetailControls();
+      },
       setBatchBusy(value) {
         if (value === batchBusy) return;
         batchBusy = value;

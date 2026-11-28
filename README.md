@@ -36,6 +36,7 @@ Select **Folder batch** above the workspace, choose the folder containing the im
 
 ### Batch options
 
+- **Detail level** and **Group prompt by subject** are shared with **Single image**. Change them in either view and use **View preview** to reformat existing preview results.
 - For WD and PixAI, choose the output format and optionally enter common prefix tags or exclusions. **Preview up to 3 images** shows sample output without writing files. **View preview** reopens the last preview.
 - The batch processes images directly inside the selected folder. To replace existing text, select the update option and review the count. The results show name conflicts, skipped files and failures. Stopping a batch preserves files already written.
 - Newly saved results open in a dialog in the center of the screen. **View saved .txt** reopens files from the selected save folder. Filter by filename or tag, edit the text and save your changes. WD and PixAI batch and trial runs reuse detection scores from Forge’s `cache/image_tagger/analysis.sqlite3` when the image, model revision and device configuration match.
@@ -110,6 +111,16 @@ Choose **Unload after analysis** (default), timed unloading or keep-loaded under
 The taggers accept still images up to 64 MiB and 64 million pixels. While an analysis is running, switching modes keeps the current job on its original model and preserves the preview until the next result is ready. Resize the reference image from its lower-right corner. The preview and comparison handles also support arrow keys.
 
 ## Verification and credits
+
+### Windows folder-batch verification in v1.0.5
+
+On November 28, 2026, we selected a folder through the native Windows picker in Microsoft Edge running Forge Neo. In each mode, we changed the shared detail and grouping settings, reopened the preview, checked the settings in **Single image**, then saved and read back `sample.txt` from beside the image.
+
+| Mode | Analysis requests during settings changes and preview reopening | Saved text matched the updated preview |
+|---|---:|---|
+| WD | 0 | Yes |
+| PixAI | 0 | Yes |
+| LM Studio (Qwen3-VL) | 0 | Yes |
 
 Initial Windows checks on Forge Neo `6d5aa3bc` (Gradio 4.40.0) covered model download integrity, CPU and CUDA inference, switching detail levels without rerunning analysis, clipboard output and transfer to both Forge tabs. The original implementation draws on Anima Character Sheet Designer for tagger preprocessing and model verification. [Upstream project](https://github.com/ukr8b3g-cmyk/Anima-Character-Sheet-Designer) · [License](LICENSE) · [Artwork and model notices](NOTICE.md)
 
@@ -252,6 +263,8 @@ LM Studio へは共通プロンプトと選択した用途の処理指示を渡�
 
 **短文を補完** を使うときは **1枚ずつ** に切り替えます。
 
+**詳しさ** と **読みやすく整形** は **1枚ずつ** と共通です。フォルダー一括で切り替えた後、**プレビューを見る** で同じ解析結果を新しい設定で表示できます。
+
 LM Studioではモデル、解析項目、システムプロンプト、生成設定、詳しさ、整形に単画像と同じ設定を使います。**最大3枚をプレビュー** の後、同じタブ・フォルダーで同じ生成設定のまま **一括解析して .txt を保存** すると、試した画像の結果を再利用します。詳しさや整形だけを変えても再生成は不要です。単画像のプレビューと手編集はそのまま残ります。停止すると実行中の1枚の応答を待ち、それ以降の書き込みを止めます。保存済みをスキップする設定で再開すれば、残りの画像から続けられます。
 
 1. 画面上部で **フォルダー一括** に切り替え、**画像フォルダーを選ぶ** を押します。選んだフォルダー名と画像の枚数が表示されます。初期状態では画像と同じ場所に保存します。出力先を変える場合は **別の保存先を選ぶ** を押します。
@@ -302,6 +315,16 @@ WD・PixAIの一括と試し出力の検出スコアは、Forge のデータデ�
 **Models／モデル** を開くと、モデルごとのダウンロード先を確認できます。ローカルの Forge では **フォルダーを開く** からファイルマネージャーを開けます。**削除** は確認後、そのモデルのダウンロード先にあるモデルファイルと付属メタデータを削除します。他のモデルや共有ファイルは対象外です。解析または対象モデルのダウンロードが終わってから削除できます。自動ダウンロードが有効なら、削除したモデルは次に必要になったときに再取得します。
 
 Anima の検証済みファイルを共用するには、Forge の **Settings → Image Tagger** で、その二つのフォルダーを含むディレクトリを指定します。モデル欄には共有の読み込み先も表示されます。共有フォルダー内のモデルを読み込み、不足ファイルの取得には拡張の保存先を使います。配布リビジョンと SHA-256 は拡張のモデル定義にあります。画像解析と説明文の生成は Forge の実行環境内で行います。
+
+## フォルダー一括の実機確認（v1.0.5）
+
+2026-11-28 に、Windows上の Microsoft Edge で Forge Neo を開き、Windows標準のフォルダー選択から検証しました。詳しさと整形を変更し、プレビューを開き直して「1枚ずつ」にも同じ設定が表示されることを確認しました。各モードで画像と同じフォルダーに保存した `sample.txt` を読み戻しています。
+
+| モード | 設定切替・プレビュー再表示時の解析リクエスト | 保存したテキスト |
+|---|---:|---|
+| WD | 0件 | 変更後のプレビューと一致 |
+| PixAI | 0件 | 変更後のプレビューと一致 |
+| LM Studio（Qwen3-VL） | 0件 | 変更後のプレビューと一致 |
 
 ## 初期実装時の実機確認
 
